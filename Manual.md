@@ -8,7 +8,9 @@ All three have a maximum delay time of **one second**, with mono wet processing.
 
 ### Updating
 
-Replace the existing files, eject and restart. Current native builds can be replaced directly. Very old standard-format builds can leave incompatible saved defaults in the FX list and may crash when opening the page. Back up your OP-1 before upgrading those builds. The previously tested temporary-name migration is required for that case; do not repeatedly open a crashing old entry. This release does not include the experimental migration or diagnostic builds.
+Replace the existing files, eject and restart. Current native builds can be replaced directly.
+
+Choosing a different effect and then selecting one of these devices again starts it with its default settings, including secondary controls. Loading a saved sound recalls its settings; FX OFF/ON does not reset them. The Help/FN button has no device action on Delayed or Pitch Delay and leaves their complete screens visible. Opus retains ownership of FN combinations. Very old standard-format builds can leave incompatible saved defaults in the FX list and may crash when opening the page. Back up your OP-1 before upgrading those builds. The previously tested temporary-name migration is required for that case; do not repeatedly open a crashing old entry. This release does not include the experimental migration or diagnostic builds.
 
 ## Bubbler
 
@@ -53,7 +55,7 @@ Green bubbles follow Feedback, blue elements follow Time and white accents follo
 
 *Desktop preview at default settings; Iosevka lettering approximates the native font.*
 
-A delay with a resonant feedback filter and LFO modulation.
+A delay with a resonant feedback filter and LFO modulation. Sine modulation is interpolated for smoother delay movement; higher-precision feedback filtering prevents the low-level decay artifacts addressed in version 0.3.3. Abrupt LFO shapes such as Square can still click by design.
 
 | Main page | Control |
 | --- | --- |

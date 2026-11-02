@@ -14,6 +14,12 @@ static short esc_saved[17][8];
 static struct opus_fx esc_fx[2];
 static int esc_last_owner[2]={-1,-1},esc_mark,esc_buffer_owner=-1;
 static char esc_screen_path[256];
+/* The effect browser chooses native defaults; stored full-resolution extras
+ * must also start fresh. Preset loads and FX bypass are separate operations. */
+static volatile int esc_choice[17],esc_reset_dirty[17];
+static int esc_new_choice[2];
+static void esc_reset_secondary(int owner);
+static void esc_store_secondary(int owner);
 static int esc_capture_effect(struct opl_self *s,const struct opus_effect *e)
 {
  (void)s;esc_effect=e;
@@ -57,6 +63,8 @@ static void esc_parameters(int owner,const short *native,short out[8])
 static void esc_record_loaded(int owner,const struct opus_fx_record *r)
 {
  if(owner<0 || owner>16 || !r)return;
+ esc_choice[owner]=0;
+ if(owner<16)esc_new_choice[owner/8]=0;
  int same=1;
  for(int i=0;i<16;++i){char a=r->type[i],b=esc_effect->name[i];if(a!=b){same=0;break;}if(!a)break;}
  if(!same){for(int i=0;i<8;++i)esc_saved[owner][i]=esc_effect->defaults[i];return;}
@@ -70,15 +78,50 @@ static void esc_save(int owner)
  r.on=1;for(int i=0;i<8;++i)r.par[i]=esc_saved[owner][i];
  if(!opus_fx_record_put(esc_self,owner,&r))opus_log(esc_self,"could not save hosted sound record");
 }
+static void esc_flush_reset(void)
+{
+ for(int o=0;o<16;++o)if(esc_reset_dirty[o]) {
+  esc_reset_dirty[o]=0;esc_store_secondary(o);esc_save(o);
+ }
+}
+static void esc_after_key(int key,int pressed)
+{
+ if(pressed && (key==0x24 || key==0x25) && opus_fx_list_shown()) {
+  int o=opus_fx_owner();if(o>=0 && o<16)esc_choice[o]=1;
+ }
+ esc_flush_reset();
+}
+static void esc_after_knob(int index,short delta)
+{
+ (void)index;
+ if(delta && opus_fx_list_shown()) {
+  int o=opus_fx_owner();if(o>=0 && o<16)esc_choice[o]=1;
+ }
+ esc_flush_reset();
+}
+static void esc_reset_secondary(int o)
+{resonance[o]=0;frozen[o]=0;res_edit[o]=0;knob_acc=0;push_taken[0]=push_taken[1]=0;}
+static void esc_store_secondary(int o){save_res(o);}
 static void esc_init(int pos)
 {
  if(pos<0 || pos>1)return;
+ int o=esc_owner(pos);
+ esc_new_choice[pos]=opus_fx_list_shown() || esc_choice[o];esc_choice[o]=0;
  esc_effect->init(&esc_fx[pos]);esc_last_owner[pos]=-1;esc_buffer_owner=-1;
 }
 static void esc_render(int pos,short *buf,const short *native)
 {
  if(pos<0 || pos>1)return;
  int owner=esc_owner(pos);
+ if(esc_new_choice[pos] && native && native[4]==(short)esc_mark) {
+  esc_new_choice[pos]=0;
+  int defaults=1;
+  for(int i=0;i<4;++i)if(native[i]!=esc_encode(i,esc_effect->defaults[i]))defaults=0;
+  if(defaults) {
+   for(int i=0;i<8;++i)esc_saved[owner][i]=esc_effect->defaults[i];
+   esc_reset_secondary(owner);esc_reset_dirty[owner]=1;
+  }
+ }
  if(owner!=esc_last_owner[pos] || owner!=esc_buffer_owner){esc_effect->init(&esc_fx[pos]);esc_last_owner[pos]=owner;esc_buffer_owner=owner;}
  short full[8];esc_parameters(owner,native,full);esc_effect->mono(&esc_fx[pos],buf,full);
 }
@@ -150,5 +193,6 @@ int opl_init(struct opl_self *s)
  esc_host.init=esc_init;esc_host.render=esc_render;esc_host.render_stereo=esc_stereo;
  esc_host.svg=esc_screen_path;esc_host.screen_init=esc_screen_init;esc_host.screen_draw=esc_screen_draw;esc_host.key=esc_key;esc_host.turn=esc_turn;
  result=opus_effect_host(s,&esc_host);if(result<0)return result;esc_mark=result;
- opus_on_key(s,esc_global_key);return 0;
+ opus_on_key(s,esc_global_key);
+ opus_on_key_after(s,esc_after_key);opus_on_knob_after(s,esc_after_knob);return 0;
 }

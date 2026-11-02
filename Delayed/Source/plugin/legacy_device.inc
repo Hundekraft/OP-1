@@ -39,7 +39,7 @@ static void stereo(struct opus_fx *fx,short *l,short *r,const short *p)
 {(void)fx;(void)l;(void)r;(void)p; /* Master is dry, no state or buffers. */}
 
 static int focused(void)
-{return view_owner==owner_now() && frame-view_frame<=1u && opus_fx_page_shown() && !opus_fx_list_shown() && !opus_fn_held();}
+{return view_owner==owner_now() && frame-view_frame<=1u && opus_fx_page_shown() && !opus_fx_list_shown();}
 static void settings(const char *name,int value)
 {
  if(name && name[0]=='r' && name[1]>='0' && name[1]<='8') {
@@ -60,7 +60,7 @@ static int key(int code,int pressed)
 {
  int push=code==0x3d?0:code==0x3e?1:-1;
  if(push>=0 && !pressed && push_taken[push]){push_taken[push]=0;return 1;}
- if(push>=0 && pressed && focused() && !fw_shift_held()) {
+ if(push>=0 && pressed && focused() && !opus_fn_held() && !fw_shift_held()) {
   int o=owner_now();
   if(push==0){res_edit[o]=!res_edit[o];knob_acc=0;}
   else frozen[o]=!frozen[o];
@@ -72,7 +72,7 @@ static int key(int code,int pressed)
 static int knob(int index,short *delta)
 {
  int o=owner_now();
- if((index&3)!=2 || !focused() || fw_shift_held() || !res_edit[o])return 0;
+ if(opus_fn_held() || (index&3)!=2 || !focused() || fw_shift_held() || !res_edit[o])return 0;
  knob_acc+=*delta>>10;
  int detents=knob_acc/4;knob_acc-=detents*4;
  if(detents){resonance[o]=clamp(resonance[o]+detents*2,0,63);save_res(o);}

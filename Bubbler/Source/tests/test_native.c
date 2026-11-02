@@ -5,6 +5,10 @@
 #include <stdarg.h>
 #include "opus_plugin.h"
 #include "op1fw.h"
+static int t_list;
+static void (*t_after_key)(int,int);static void (*t_after_knob)(int,short);
+void opus_on_key_after(struct opl_self *s,void (*f)(int,int)){(void)s;t_after_key=f;}
+void opus_on_knob_after(struct opl_self *s,void (*f)(int,short)){(void)s;t_after_knob=f;}
 static int t_owner,t_shift,t_fn,t_pos,t_slot[2],t_page=1,t_frames,t_paths,t_text,t_puts;
 static const struct opus_hosted_effect *t_host;
 static void (*t_loaded)(int,const struct opus_fx_record *),(*t_setting)(const char *,int);
@@ -23,7 +27,7 @@ int opus_effect_live(int pos,short *p){(void)pos;for(int i=0;i<8;++i)p[i]=t_nati
 void opus_on_key(struct opl_self *s,int (*f)(int,int)){(void)s;t_key=f;}
 void opus_on_setting(struct opl_self *s,void (*f)(const char *,int)){(void)s;t_setting=f;}
 int opus_fx_owner(void){return t_owner;}int opus_instrument_now(void){return t_pos;}int opus_sound_slot(int i){return t_slot[i];}
-int opus_fx_page_shown(void){return t_page;}int opus_fx_list_shown(void){return 0;}int opus_fn_held(void){return t_fn;}int fw_shift_held(void){return t_shift;}
+int opus_fx_page_shown(void){return t_page;}int opus_fx_list_shown(void){return t_list;}int opus_fn_held(void){return t_fn;}int fw_shift_held(void){return t_shift;}
 int opus_setting(struct opl_self *s,const char *n){(void)s;int i=n[0]=='e'?(n[1]-'0')*10+n[2]-'0':n[0]=='r'?n[1]-'0':11;return t_values[i];}
 int opus_set_setting(struct opl_self *s,const char *n,int v){(void)s;int i=n[0]=='e'?(n[1]-'0')*10+n[2]-'0':n[0]=='r'?n[1]-'0':11;t_values[i]=v;if(t_setting)t_setting(n,v);return 1;}
 void opus_log(struct opl_self *s,const char *text){(void)s;fprintf(stderr,"log:%s\n",text);}
@@ -104,5 +108,27 @@ int main(void)
  /* Missing record resets to defaults; a loaded sound must not inherit the old one. */
  struct opus_fx_record empty={0};t_loaded(0,&empty);assert(!memcmp(esc_saved[0],esc_effect->defaults,sizeof decoded));
  printf("Hosted adapter passed: native screen, controls, complete sound records, mark isolation, shared history and dry master; allocated%u bytes\n",t_bytes);
+
+ /* A new browser choice restores all packed defaults and secondary controls. */
+ t_owner=0;t_pos=0;t_slot[0]=0;t_shift=0;t_fn=0;
+ for(int i=0;i<8;++i){esc_saved[0][i]=1234;t_native[i]=t_host->defaults[i];}
+ t_native[4]=(short)esc_mark;
+ extra_page[0]=1;transpose=4;bb_set_transpose(4);
+
+ t_list=1;t_after_knob(0,1024);t_host->init(0);t_list=0;
+ short silence[64]={0};t_host->render(0,silence,t_native);
+ assert(!memcmp(esc_saved[0],esc_effect->defaults,sizeof esc_saved[0]));
+ assert(esc_reset_dirty[0]);t_after_key(0x24,0);assert(!esc_reset_dirty[0]);
+ assert(!memcmp(t_records[0].par,esc_effect->defaults,sizeof esc_saved[0]));
+ assert(extra_page[0]==0 && transpose==0);
+
+ /* Bypass/re-init and a saved preset recall retain their settings. */
+ esc_saved[0][0]=20000;t_native[0]=esc_encode(0,20000);
+ t_host->init(0);t_host->render(0,silence,t_native);assert(esc_saved[0][0]==20000);
+ struct opus_fx_record preset=t_records[0];preset.par[0]=21000;preset.par[5]=16000;
+ t_list=1;t_after_knob(0,1024);t_list=0;t_loaded(0,&preset);
+ t_native[0]=esc_encode(0,21000);t_host->init(0);t_host->render(0,silence,t_native);
+ assert(esc_saved[0][0]==21000 && esc_saved[0][5]==16000);
+ puts("Defaults after effect re-selection, preset preservation and help behavior passed");
  for(unsigned i=0;i<t_count;++i)free(t_allocated[i]);
 }

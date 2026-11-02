@@ -4,7 +4,7 @@
 #define DL_SAMPLES 88208u
 
 struct dl_state {
- unsigned write,phase,seed,freeze_length,filled;
+ unsigned write,phase,seed,freeze_length,filled,filter_fraction;
  int ready,time_q8,feedback,mix,depth,x1,x2,y1,y2,dc_in,dc_out;
  int random_from,random_to;
 };

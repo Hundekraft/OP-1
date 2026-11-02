@@ -42,15 +42,16 @@ static inline __attribute__((always_inline)) void filter_sub(struct filter_word 
  unsigned previous=a->lo;a->lo-=b.lo;
  a->hi-=b.hi+(previous<b.lo);
 }
-static inline __attribute__((always_inline)) int filter_sum(int c0,int c1,int c2,int input,int x1,int x2,int y1,int y2)
+static inline __attribute__((always_inline)) int filter_sum(int c0,int c1,int c2,int input,int x1,int x2,int y1,int y2,unsigned *fraction)
 {
  struct filter_word a=filter_product(c0,input+2*x1+x2);
  filter_sub(&a,filter_product(c1,y1));filter_sub(&a,filter_product(c2,y2));
+ if(fraction){unsigned before=a.lo;a.lo+=*fraction;a.hi+=(a.lo<before);*fraction=a.lo&0x0fffffffu;}
  return a.hi*16+(int)(a.lo>>28);
 }
 #ifdef DL_FILTER_TEST
 int dl_test_filter(int c0,int c1,int c2,int input,int x1,int x2,int y1,int y2)
-{return filter_sum(c0,c1,c2,input,x1,x2,y1,y2);}
+{return filter_sum(c0,c1,c2,input,x1,x2,y1,y2,0);}
 #endif
 int dl_time(int p) {return DL_TIME[clamp(p,0,32767)>>7];}
 int dl_freq(int p) {return DL_FREQ[clamp(p,0,32767)>>8];}
@@ -70,7 +71,11 @@ static inline __attribute__((always_inline)) int wave(unsigned phase,int shape,i
 {
  int q=(int)(phase>>16);
  switch(shape) {
- case 0:return DL_SINE[phase>>22];
+ case 0: {
+  unsigned i=phase>>22,f=(phase>>6)&65535u;
+  int a=DL_SINE[i],b=DL_SINE[(i+1u)&1023u];
+  return a+((b-a)*(int)f>>16);
+ }
  case 1:return q<32768?q*2-32767:98303-q*2;
  case 2:return q<32768?32767:-32767;
  case 3:return q-32768;
@@ -121,7 +126,7 @@ static void settled(struct dl_state *s,short *ring,short *left,short *right,unsi
   dc=clamp(pre-dc_in+dc-(dc*94)/32768,-262143,262143);dc_in=pre;
   ring[write]=(short)softclip(fb>32767?dc:pre);
   if(++write==DL_SAMPLES)write=0;
-  previous=last;last=pre;
+  previous=last;last=pre*256;
   wet=clamp(wet*2,-32768,32767);
   if(mix==16384) {
    left[i]=(short)((dry+wet)>>1);
@@ -134,7 +139,7 @@ static void settled(struct dl_state *s,short *ring,short *left,short *right,unsi
  unsigned old=s->phase;s->phase+=inc*64u;
  if(s->phase<old){s->random_from=s->random_to;s->random_to=random_value(s);}
  s->write=write;s->filled=s->filled>DL_SAMPLES-64u?DL_SAMPLES:s->filled+64u;
- s->x1=s->y1=last;s->x2=s->y2=previous;s->dc_in=dc_in;s->dc_out=dc;
+ s->x1=s->y1=last;s->x2=s->y2=previous;s->dc_in=dc_in;s->dc_out=dc;s->filter_fraction=0;
 }
 /* Modulated counterpart: controls settled and feedback filter bypassed.
  * Cubic readout, phase and PRNG remain sample-exact. */
@@ -154,7 +159,7 @@ static void modulated(struct dl_state *s,short *ring,short *left,short *right,in
   dc=clamp(pre-dc_in+dc-(dc*94)/32768,-262143,262143);dc_in=pre;
   ring[write]=(short)softclip(fb>32767?dc:pre);
   if(++write==DL_SAMPLES)write=0;
-  previous=last;last=pre;
+  previous=last;last=pre*256;
   wet=clamp(wet*2,-32768,32767);
   if(mix==16384) {
    left[i]=(short)((dry+wet)>>1);if(right)right[i]=(short)((dr+wet)>>1);
@@ -164,7 +169,7 @@ static void modulated(struct dl_state *s,short *ring,short *left,short *right,in
   }
  }
  s->phase=phase;s->write=write;s->filled=s->filled>DL_SAMPLES-64u?DL_SAMPLES:s->filled+64u;
- s->x1=s->y1=last;s->x2=s->y2=previous;s->dc_in=dc_in;s->dc_out=dc;
+ s->x1=s->y1=last;s->x2=s->y2=previous;s->dc_in=dc_in;s->dc_out=dc;s->filter_fraction=0;
 }
 void dl_render(struct dl_state *s,short *ring,short *left,short *right,int n,const short par[8],int resonance,int freeze)
 {
@@ -220,11 +225,14 @@ void dl_render(struct dl_state *s,short *ring,short *left,short *right,int n,con
   else {
    int input=right?(dry+dry_r)/4:dry/2;
    int pre=input+mul15(wet,feedback);
-   int out=pre;
+   /* Keep eight fractional bits in the recursive filter state. Carry the
+    * Q28 MAC remainder forward so silence does not settle at a DC offset. */
+   int filtered=pre*256;
    if(tone<127) {
-    out=clamp(filter_sum(c[0],c[1],c[2],pre,x1,x2,y1,y2),-131071,131071);
-   }
-   x2=x1;x1=pre;y2=y1;y1=out;
+    filtered=clamp(filter_sum(c[0],c[1],c[2],pre*256,x1,x2,y1,y2,&s->filter_fraction),-131071*256,131071*256);
+   } else s->filter_fraction=0;
+   x2=x1;x1=pre*256;y2=y1;y1=filtered;
+   int out=(filtered+128)>>8;
    int dc=clamp(out-s->dc_in+s->dc_out-(s->dc_out*94)/32768,-262143,262143);
    s->dc_in=out;s->dc_out=dc;
    ring[s->write]=(short)softclip(feedback>32767?dc:out);

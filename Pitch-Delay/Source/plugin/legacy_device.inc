@@ -33,7 +33,7 @@ static void mono(struct opus_fx *fx,short *buf,const short *p){unsigned v=extras
 static void stereo(struct opus_fx *fx,short *l,short *r,const short *p)
 {(void)fx;(void)l;(void)r;(void)p; /* Master is dry, no state or buffers. */}
 
-static int focused(void){return view_owner==owner_now() && frame-view_frame<=1u && opus_fx_page_shown() && !opus_fx_list_shown() && !opus_fn_held();}
+static int focused(void){return view_owner==owner_now() && frame-view_frame<=1u && opus_fx_page_shown() && !opus_fx_list_shown();}
 static void setting_changed(const char *name,int value)
 {
  if(!name || name[0]!='e' || name[1]<'0' || name[1]>'1' || name[2]<'0'||name[2]>'9')return;
@@ -51,7 +51,7 @@ static int key(int code,int pressed)
 {
  int which=code==0x3d?0:code==0x3e?1:-1;
  if(which>=0 && !pressed && taken[which]){taken[which]=0;return 1;}
- if(which>=0 && pressed && focused() && !fw_shift_held()) {
+ if(which>=0 && pressed && focused() && !opus_fn_held() && !fw_shift_held()) {
   int o=owner_now();edit[o][which]=!edit[o][which];acc[o][which]=0;taken[which]=1;return 1;
  }
  if(pressed && ((code>=1&&code<=9)||code==0x15||code==0x2c||(code>=0x2d&&code<=0x2f)||code==0x10||(code>=0x11&&code<=0x14)))view_owner=-1;
@@ -60,7 +60,7 @@ static int key(int code,int pressed)
 static int knob(int index,short *delta)
 {
  int which=(index&3)-2,o=owner_now();
- if(which<0 || !focused() || !edit[o][which])return 0;
+ if(opus_fn_held() || which<0 || !focused() || !edit[o][which])return 0;
  acc[o][which]+=*delta>>10;int d=acc[o][which]/4;acc[o][which]-=d*4;
  if(d) {
   unsigned v=extras[o];int oct=octave(v),dep=depth(v);

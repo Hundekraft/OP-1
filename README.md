@@ -4,9 +4,9 @@ Three instrument effects for the **original OP-1**, ported and adapted from Tom 
 
 | Device | Version | Download |
 | --- | --- | --- |
-| Bubbler | 1.1.9 | [bubbler.opmod](Bubbler/bubbler.opmod) |
-| Delayed | 0.3.2 | [delayed.opmod](Delayed/delayed.opmod) |
-| Pitch Delay | 0.3.2 | [pitchdelay.opmod](Pitch-Delay/pitchdelay.opmod) |
+| Bubbler | 1.1.10 | [bubbler.opmod](Bubbler/bubbler.opmod) |
+| Delayed | 0.3.4 | [delayed.opmod](Delayed/delayed.opmod) |
+| Pitch Delay | 0.3.3 | [pitchdelay.opmod](Pitch-Delay/pitchdelay.opmod) |
 
 [Download the complete release](Delay-Trio.zip) · [Manual](Manual.md) · [Credits and licences](Credits.md)
 
@@ -14,7 +14,7 @@ Requires original OP-1 firmware 246 and Opus 2.6. These are instrument effects, 
 
 Copy the three `.opmod` files to the OP-1’s `mods` folder in disk mode, eject safely and restart. Select the effect on a synth or drum instrument. See the manual before upgrading from older standard-format builds.
 
-These are the existing working builds, with no new DSP or artwork changes for this release. Bubbler 1.1.9 and the native Delayed/Pitch Delay 0.3.1 behavior were confirmed on hardware; 0.3.2 adjusts value alignment only and passed desktop checks. CPU depends on settings; no new hardware measurement is claimed.
+All three updated builds were confirmed on the original OP-1 by the user on 2 November 2026. Delayed includes the confirmed LFO and filter-decay audio fix. Fresh effect selection restores defaults, and Help leaves Delayed and Pitch Delay unchanged. Saved-preset recall and FX OFF/ON retain settings. CPU depends on settings; no new CPU measurement is claimed.
 
 Complete device source is included beside each binary. See [Building](Building.md). GPL-3.0-or-later applies to the ports; original SoundHack notices are retained separately.
 
