@@ -17,3 +17,19 @@ Copy the three `.opmod` files to the OP-1’s `mods` folder in disk mode, eject 
 These are the existing working builds, with no new DSP or artwork changes for this release. Bubbler 1.1.9 and the native Delayed/Pitch Delay 0.3.1 behavior were confirmed on hardware; 0.3.2 adjusts value alignment only and passed desktop checks. CPU depends on settings; no new hardware measurement is claimed.
 
 Complete device source is included beside each binary. See [Building](Building.md). GPL-3.0-or-later applies to the ports; original SoundHack notices are retained separately.
+
+## Screen previews
+
+Desktop previews of the current default screens; Iosevka lettering approximates the native font. These are not device photographs.
+
+### Bubbler
+
+![Bubbler main screen](Screenshots/Bubbler.png)
+
+### Delayed
+
+![Delayed main screen](Screenshots/Delayed.png)
+
+### Pitch Delay
+
+![Pitch Delay main screen](Screenshots/Pitch-Delay.png)

@@ -12,6 +12,10 @@ Replace the existing files, eject and restart. Current native builds can be repl
 
 ## Bubbler
 
+![Bubbler main screen](Screenshots/Bubbler.png)
+
+*Desktop preview at default settings; Iosevka lettering approximates the native font.*
+
 A granular delay: overlapping, smoothly enveloped pieces of recorded sound are recombined into the output and feedback. Delay time, grain starts, size, direction and octave can vary independently.
 
 | Page 1 | Control |
@@ -45,6 +49,10 @@ Green bubbles follow Feedback, blue elements follow Time and white accents follo
 
 ## Delayed
 
+![Delayed main screen](Screenshots/Delayed.png)
+
+*Desktop preview at default settings; Iosevka lettering approximates the native font.*
+
 A delay with a resonant feedback filter and LFO modulation.
 
 | Main page | Control |
@@ -70,6 +78,10 @@ Phase offsets the modulation cycle; this mono wet engine does not provide stereo
 The blue clock grows with Time, green stripes follow Feedback, white sparkles follow Filter Freq, and the red running girl follows Mix.
 
 ## Pitch Delay
+
+![Pitch Delay main screen](Screenshots/Pitch-Delay.png)
+
+*Desktop preview at default settings; Iosevka lettering approximates the native font.*
 
 A delay with a moving-read-head pitch shifter. Pitchshift and Octave combine to set playback pitch; Loop Depth sets the pitch-shifting window as a portion of the delay time.
 
