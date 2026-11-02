@@ -8,11 +8,11 @@ manual; tape behavior stays as provided by the OP-1's Sync mode.
 
 ## Download and use
 
-Download [pulsesync.opmod](pulsesync.opmod?raw=true), copy it into the OP-1 disk's
+Download pulsesync.opmod, copy it into the OP-1 disk's
 `mods` folder, eject and restart. Select line in, keep the input active, and select
 **Sync** on the tempo screen. The plugin's **mute clock input** defaults to on.
 
-See [MANUAL.txt](MANUAL.txt) for the very short manual. Attenuate modular CV to a
+See MANUAL.txt for the very short manual. Attenuate modular CV to a
 suitable line level before connecting it to the OP-1's audio input.
 
 Settings are in the Opus menu, T2, Pulse Sync, blue push: enable, mute clock input,
