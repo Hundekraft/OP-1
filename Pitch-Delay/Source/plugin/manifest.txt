@@ -1,0 +1,22 @@
+opmod     1
+id        esc.pitchdelay
+name      Pitch Delay
+author    ESC_CODE
+version   0.3.2
+core      2.6
+adds      effect pitchdelay
+uses      white_push noshift nofn modal "pitch / octave edit"
+uses      orange_push noshift nofn modal "mix / loop depth edit"
+uses      white_turn nofn modal "pitch or octave"
+uses      orange_turn nofn modal "mix or loop depth"
+setting   e00 -32768 32767 -4997 "extra controls 1"
+setting   e01 -32768 32767 -14415 "extra controls 2"
+setting   e02 -32768 32767 31518 "extra controls 3"
+setting   e03 -32768 32767 -19988 "extra controls 4"
+setting   e04 -32768 32767 7879 "extra controls 5"
+setting   e05 -32768 32767 -4997 "extra controls 6"
+setting   e06 -32768 32767 -14415 "extra controls 7"
+setting   e07 -32768 32767 31518 "extra controls 8"
+setting   e08 -32768 32767 -19988 "extra controls 9"
+setting   e09 -32768 32767 7879 "extra controls 10"
+setting   e10 -32768 32767 123 "extra controls 11"

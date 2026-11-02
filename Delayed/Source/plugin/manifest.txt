@@ -1,0 +1,23 @@
+opmod     1
+id        esc.delay
+name      Delayed
+author    ESC_CODE
+version   0.3.2
+core      2.6
+adds      effect delayed
+uses      blue_turn shift nofn modal "lfo frequency"
+uses      green_turn shift nofn modal "lfo depth"
+uses      white_turn shift nofn modal "lfo shape"
+uses      orange_turn shift nofn modal "lfo phase"
+uses      white_push noshift nofn modal "filter / resonance edit"
+uses      white_turn noshift nofn modal "filter or resonance"
+uses      orange_push noshift nofn modal "freeze"
+setting   r0 0 4095 0 "resonance slots 1-2"
+setting   r1 0 4095 0 "resonance slots 3-4"
+setting   r2 0 4095 0 "resonance slots 5-6"
+setting   r3 0 4095 0 "resonance slots 7-8"
+setting   r4 0 4095 0 "drum resonance 1-2"
+setting   r5 0 4095 0 "drum resonance 3-4"
+setting   r6 0 4095 0 "drum resonance 5-6"
+setting   r7 0 4095 0 "drum resonance 7-8"
+setting   r8 0 63 0 "master resonance"
