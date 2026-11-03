@@ -27,7 +27,7 @@ void bb_fast_tables(void *memory)
 }
 
 static volatile int transpose_mode,last_note;
-void bb_set_transpose(int mode){transpose_mode=mode>=0&&mode<6?mode:0;}
+void bb_set_transpose(int mode){transpose_mode=mode>=0&&mode<10?mode:0;}
 void bb_note(int note){if(note>=0&&note<128)last_note=note-60;}
 static int clamp(int v, int lo, int hi) { return v < lo ? lo : v > hi ? hi : v; }
 static int q15(int a, int b) { return (a * b) >> 15; }
@@ -219,7 +219,7 @@ static int spawn(struct bb_state *s, unsigned base_length, const struct bb_param
         int spread = q15(jitter, p->size_var); /* -0.5 .. +0.5 in Q15 */
         g->length = (unsigned)((int)base_length + q15((int)base_length, spread) / 2);
         if (g->length < 16u) g->length = 16u;
-        static const int offsets[6]={0,0,-12,-7,7,12};
+        static const int offsets[10]={0,0,-12,-7,7,12,-5,-3,3,5};
         int mode=transpose_mode;
         int pitch=mode==1?last_note:offsets[mode];
         if(p->pitch_var) {

@@ -33,16 +33,17 @@ static int extra_page[OPUS_FX_OWNERS];
 static volatile unsigned frame_number, viewed_frame;
 static volatile int viewed_owner = -1;
 static int arrow_taken[2],push_taken,transpose;
+static int res_edit[OPUS_FX_OWNERS];
 static void setting_changed(const char *name,int value)
 {
     if(name && name[0]=='t') {
-        transpose=clamp(value,0,5);
+        transpose=clamp(value,0,9);
         bb_set_transpose(transpose);
     }
 }
 static struct opl_self *art_self;
 static short art_par[4];
-static char orange_random[16];
+static char filter_text[16],res_text[24];
 static int owner_now(void) {
     return clamp(opus_fx_owner(),0,OPUS_FX_OWNERS-1);
 }
@@ -52,16 +53,14 @@ static void frame_begin(void) {
 }
 static int key(int code,int pressed)
 {
-    if(code==0x3e && !pressed && push_taken) {
+    if(code==0x3d && !pressed && push_taken) {
         push_taken=0;
         return 1;
     }
-    if(owner_now()!=16 && code==0x3e && pressed && !opus_fn_held() && fw_shift_held() &&
+    if(owner_now()!=16 && code==0x3d && pressed && !opus_fn_held() && fw_shift_held() &&
     extra_page[owner_now()]==1 && opus_fx_page_shown() && !opus_fx_list_shown() &&
     viewed_owner==owner_now() && frame_number-viewed_frame<=1u) {
-        transpose=(transpose+1)%6;
-        bb_set_transpose(transpose);
-        opus_set_setting(art_self,"transpose",transpose);
+        res_edit[owner_now()]=!res_edit[owner_now()];
         push_taken=1;
         return 1;
     }
@@ -98,10 +97,19 @@ static int shift_knob(short *par, int encoder, int detents)
         if(encoder==2) p.size=clamp(p.size+d*1024,0,32767);
         if(encoder==3) p.size_var=clamp(p.size_var+d*1024,0,32767);
     } else {
-        if(encoder==0) p.tone=clamp(p.tone+d*4,0,127);
-        if(encoder==1) p.resonance=clamp(p.resonance+d*2,0,63);
-        if(encoder==2) p.reverse=clamp(p.reverse+d*1024,0,32767);
-        if(encoder==3) p.pitch_var=clamp(p.pitch_var+d*5,0,100);
+        if(encoder==0 && d) {
+            static const int position[10]={0,1,-4,-3,4,5,-2,-1,2,3};
+            static const int mode[10]={2,3,6,7,0,1,8,9,4,5};
+            transpose=mode[clamp(position[transpose]+d,-4,5)+4];
+            bb_set_transpose(transpose);
+            opus_set_setting(art_self,"transpose",transpose);
+        }
+        if(encoder==1) p.pitch_var=clamp(p.pitch_var+d*5,0,100);
+        if(encoder==2) {
+            if(res_edit[owner_now()])p.resonance=clamp(p.resonance+d*2,0,63);
+            else p.tone=clamp(p.tone+d*4,0,127);
+        }
+        if(encoder==3) p.reverse=clamp(p.reverse+d*1024,0,32767);
     }
     if(d) bb_encode(par,&p);
     /* native callback saves all eight words */
@@ -118,22 +126,9 @@ static void underlay(unsigned short *buf)
     unsigned page=fw_shift_held()?(unsigned)extra_page[owner]+1u:0u;
     bb_art_draw(art_self,art_par,page);
     if(page==2) {
-        static const char *const modes[6]= {
-            "off","","-12 st","-7 st","+7 st","+12 st"
-        } ;
-        native_page_text_right(art_self,2,311,118,14,OPUS_COLOR_TEXT,orange_random);
-        native_page_text_right(art_self,1,311,134,8,OPUS_COLOR_E4,modes[transpose]);
-        if(transpose==1) {
-            /* Original miniature keyboard, native paths, not a stock glyph. */
-            native_page_path();
-            native_page_move(298*256,134*256);
-            native_page_line_to(310*256,134*256);
-            native_page_line_to(310*256,142*256);
-            native_page_line_to(298*256,142*256);
-            native_page_close();
-            native_page_stroke(256,OPUS_COLOR_E4,255,OPUS_CAP_ROUND,OPUS_JOIN_ROUND);
-            for(int x=302;x<310;x+=4)native_page_stroke_line(x*256,134*256,x*256,142*256,256,OPUS_COLOR_E4);
-        }
+        native_page_text_right(art_self,2,311,29,16,OPUS_COLOR_TEXT,filter_text);
+        native_page_text_right(art_self,1,311,48,10,OPUS_COLOR_E3,res_text);
+
     }
 }
 /* After native drawing, repair only a verified stock plot line. The saved
@@ -147,7 +142,7 @@ static void view(const short *par, struct opus_fx_view *v)
         "time var", "start var", "size", "size var"
     } ;
     static const char *const grains[4] = {
-        "filter freq", "reso", "reverse", "pitch var"
+        "pitch", "pitch var", "filter freq", "reverse"
     } ;
     static char value[4][16];
     int owner=owner_now();
@@ -156,7 +151,7 @@ static void view(const short *par, struct opus_fx_view *v)
     int page=fw_shift_held()?extra_page[owner]+1:0;
     struct bb_params p;
     bb_decode(par,&p);
-    fw_snprintf(orange_random,16,"%i%%",p.pitch_var);
+
     for(int i=0;i<4;++i)art_par[i]=par[i];
     art_par[2]=(short)(p.density*32767/100);
     if (!page) {
@@ -170,16 +165,19 @@ static void view(const short *par, struct opus_fx_view *v)
         fw_snprintf(value[2],16,"%i%%",2+p.size*48/32767);
         fw_snprintf(value[3],16,"%i%%",p.size_var*100/32767);
     } else {
+        static const char *const modes[10]={"off","key","-12 st","-7 st","+7 st","+12 st","-5 st","-3 st","+3 st","+5 st"};
+        fw_snprintf(value[0],16,"%s",modes[transpose]);
+        fw_snprintf(value[1],16,"%i%%",p.pitch_var);
         int hz=bb_cutoff(p.tone<<8);
-        if(hz>=1000)fw_snprintf(value[0],16,"%i.%i khz",hz/1000,(hz%1000)/100);
-        else fw_snprintf(value[0],16,"%i hz",hz);
-        fw_snprintf(value[1],16,"%i%%",p.resonance*100/63);
-        fw_snprintf(value[2],16,"%i%%",p.reverse*100/32767);
-        fw_snprintf(value[3],16,"%i%%",p.pitch_var);
+        if(hz>=1000)fw_snprintf(filter_text,16,"%i.%i khz",hz/1000,(hz%1000)/100);
+        else fw_snprintf(filter_text,16,"%i hz",hz);
+        fw_snprintf(res_text,24,res_edit[owner]?"> reso %i%%":"reso %i%%",p.resonance*100/63);
+        value[2][0]=0;
+        fw_snprintf(value[3],16,"%i%%",p.reverse*100/32767);
     }
     for (int i = 0; i < 4; ++i) {
         v->label[i] = page==0?normal[i]:page==1?shifted[i]:grains[i];
-        v->value[i] = page==2 && i==3?"":value[i];
+        v->value[i] = page==2 && i==2?"":value[i];
     }
     for(int i=0;i<3;++i) v->wave[i]=0;
     v->waves=0;

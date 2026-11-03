@@ -82,7 +82,7 @@ int main(void)
  int sets=t_sets,objects=t_constructed;t_draw();assert(t_sets==sets&&t_constructed==objects);
  /* Right and left Shift pages, all auxiliary text, and MIDI icon. */
  t_shift=1;t_draw();assert(t_key(0x25,1));assert(t_key(0x25,0));t_draw();
- assert(t_host->key(0,0x3e,1));assert(t_host->key(0,0x3e,0));t_draw();
+ assert(t_host->key(0,0x3d,1));assert(t_host->key(0,0x3d,0));t_draw();
  t_shift=0;t_draw();t_shift=1;t_draw();t_shift=0;
  assert(t_constructed==objects);
  short before[8];for(int i=0;i<8;++i)before[i]=esc_saved[0][i];
@@ -98,6 +98,34 @@ int main(void)
 #endif
  /* A white push goes through the same page-scoped handler. */
  t_draw();t_host->key(0,0x3d,1);t_host->key(0,0x3d,0);
+ /* New page 3 mapping: Pitch, Pitch Var, Filter/Reso, Reverse. */
+ extra_page[0]=1;t_shift=1;t_draw();res_edit[0]=0;
+ struct bb_params a,b;bb_decode(esc_saved[0],&a);
+ transpose=0;bb_set_transpose(0);
+ static const int sequence[10]={2,3,6,7,0,1,8,9,4,5};
+ assert(t_host->turn(0,t_native,0,-64));assert(transpose==sequence[0]);
+ for(int i=1;i<10;++i){assert(t_host->turn(0,t_native,0,1));assert(transpose==sequence[i]);}
+ assert(t_host->turn(0,t_native,0,1));assert(transpose==5);
+ for(int i=8;i>=0;--i){assert(t_host->turn(0,t_native,0,-1));assert(transpose==sequence[i]);}
+ assert(t_host->turn(0,t_native,0,-1));assert(transpose==2);
+ assert(t_host->turn(0,t_native,0,4));assert(transpose==0);
+ assert(t_host->turn(0,t_native,0,1));
+ struct opus_fx_view key_view;esc_effect->view(esc_saved[0],&key_view);
+ assert(!strcmp(key_view.value[0],"key"));
+ assert(t_host->turn(0,t_native,0,-1));assert(transpose==0);
+ assert(t_host->turn(0,t_native,1,1));bb_decode(esc_saved[0],&b);
+ assert(b.pitch_var>a.pitch_var && b.tone==a.tone && b.reverse==a.reverse && b.resonance==a.resonance);
+ a=b;assert(t_host->turn(0,t_native,2,-1));bb_decode(esc_saved[0],&b);
+ assert(b.tone<a.tone && b.resonance==a.resonance && b.pitch_var==a.pitch_var);
+ t_draw();assert(t_host->key(0,0x3d,1));assert(t_host->key(0,0x3d,0));assert(res_edit[0]);
+ a=b;assert(t_host->turn(0,t_native,2,1));bb_decode(esc_saved[0],&b);
+ assert(b.resonance>a.resonance && b.tone==a.tone);
+ a=b;assert(t_host->turn(0,t_native,3,1));bb_decode(esc_saved[0],&b);
+ assert(b.reverse>a.reverse && b.pitch_var==a.pitch_var && b.tone==a.tone);
+ t_draw();assert(!t_host->key(0,0x3e,1));assert(!t_host->key(0,0x3e,0));
+ struct opus_fx_view v;esc_effect->view(esc_saved[0],&v);
+ assert(!strcmp(v.label[0],"pitch") && !strcmp(v.label[1],"pitch var") && !strcmp(v.label[2],"filter freq") && !strcmp(v.label[3],"reverse"));
+ assert(!v.value[2][0]);t_shift=0;
  /* Shared buffer handover cannot leak synth into drum, or another slot. */
  short samples[64]={0};samples[0]=12345;t_host->init(0);t_host->render(0,samples,t_native);
  t_pos=1;t_owner=8;t_slot[1]=0;memset(samples,0,sizeof samples);t_host->init(1);t_host->render(1,samples,t_native);for(int i=0;i<64;++i)assert(samples[i]==0);

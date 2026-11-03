@@ -36,16 +36,23 @@ Hold **Shift** to access the additional pages. While holding Shift, Right goes f
 | White | Size: grain duration, 2–50% of Time |
 | Orange | Size Var: random variation of grain duration |
 
+![Bubbler page 3](Screenshots/Bubbler-Page-3.png)
+
+*Desktop preview; Iosevka lettering approximates the native font.*
+
 | Page 3 | Control |
 | --- | --- |
-| Blue | Filter Freq: feedback filter cutoff |
-| Green | Reso: filter resonance |
-| White | Reverse: probability that a grain plays backward |
-| Orange | Pitch Var: probability of adding a random octave shift to each grain |
+| Blue | Pitch: -12, -7, -5, -3, Off, key, +3, +5, +7, +12 semitones |
+| Green | Pitch Var: probability of adding a random octave shift to each grain |
+| White | Filter Freq: feedback filter cutoff |
+| White push | Toggle the white encoder between Filter Freq and Reso |
+| Orange | Reverse: probability that a grain plays backward |
+
+Resonance is displayed below Filter Freq, with an edit indicator when selected. Blue starts at Off. Turning left selects -3, -5, -7 and -12; turning right selects key, +3, +5, +7 and +12. Both ends stop without wrapping. White push acts while Shift is held on page 3. Orange push no longer selects pitch.
 
 At Pitch Var 0%, no random octave is added; at 100%, every grain receives a random -12 or +12 semitone shift. This is added to the selected base pitch.
 
-On page 3, **Shift + orange push** cycles base pitch through Off, keyboard mode, -12, -7, +7 and +12 semitones. The selected mode/value appears below Pitch Var. Keyboard mode uses the latest OP-1 or incoming MIDI note; MIDI note 60 is unison, and note release retains the last pitch. Push mode starts Off after restart.
+The selected pitch appears below the blue Pitch label. The key mode is written as text rather than an icon. It uses the latest OP-1 or incoming MIDI note; MIDI note 60 is unison, and note release retains the last pitch. Pitch starts Off after restart and after fresh effect selection.
 
 Green bubbles follow Feedback, blue elements follow Time and white accents follow Density. Additional-page edits do not animate the main artwork. This port does not expose the original plug-in’s pitch-button chords, just-intonation switch or time-lock function.
 

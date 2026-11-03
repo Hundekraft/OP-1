@@ -100,7 +100,7 @@ static void esc_after_knob(int index,short delta)
  esc_flush_reset();
 }
 static void esc_reset_secondary(int o)
-{extra_page[o]=0;transpose=0;bb_set_transpose(0);push_taken=0;arrow_taken[0]=arrow_taken[1]=0;}
+{extra_page[o]=0;res_edit[o]=0;transpose=0;bb_set_transpose(0);push_taken=0;arrow_taken[0]=arrow_taken[1]=0;}
 static void esc_store_secondary(int o){(void)o;opus_set_setting(esc_self,"transpose",0);}
 static void esc_init(int pos)
 {

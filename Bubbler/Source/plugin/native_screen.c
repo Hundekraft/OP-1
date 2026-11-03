@@ -63,8 +63,8 @@ void native_screen_init(void *scr)
  }
  if(texts[0].active)return;
  create_text(0,172,10,12,OPUS_COLOR_DIM,2);
- create_text(1,311,134,8,OPUS_COLOR_E4,2);
- create_text(2,311,118,14,OPUS_COLOR_TEXT,2);
+ create_text(1,311,48,10,OPUS_COLOR_E3,2);
+ create_text(2,311,29,16,OPUS_COLOR_TEXT,2);
  create_text(7,249,85,12,OPUS_COLOR_TEXT,2);
  for(int i=0;i<4;++i){int y=(i&1)?98:9;
   create_text(16+i*2,i<2?9:311,y,10,OPUS_COLOR_E(i),i<2?0:2);
