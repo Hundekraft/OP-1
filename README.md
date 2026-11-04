@@ -1,4 +1,4 @@
-# ESC Delay Trio
+# Delay Trio
 
 Three instrument effects for the **original OP-1**, ported and adapted from Tom Erbe / SoundHack’s **+bubbler, +delay and +pitchdelay** using the Opus framework.
 
