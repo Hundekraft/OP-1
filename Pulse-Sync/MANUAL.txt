@@ -1,19 +1,26 @@
-PULSE SYNC 0.1.3 — QUICK MANUAL
-Original OP-1 with Opus 2
-ID: esc.pulsesync | Author: ESC_CODE
+PULSE SYNC 0.1.4
+Original OP-1 with Opus 2 on firmware #246
 
-1. Replace the old pulsesync.opmod in mods, eject and restart.
-   Remove any other old Pulse Sync copy. The new ID starts fresh settings.
-2. Feed a line-level 24 PPQ clock into the audio input.
-   Attenuate modular CV first; do not connect raw CV directly.
-3. Select line in with SHIFT + MIC and keep the input active.
-4. Select Sync on the tempo screen. Play/stop stays manual.
+Replace pulsesync.opmod in mods, eject and restart. Feed a line-level
+clock pulse into line in, keep the input active and select Sync on
+the tempo screen. Attenuate modular CV before connecting it.
 
-SETTINGS
-Opus menu > T2 > Pulse Sync > blue push:
-- Pulse sync: on/off.
-- Mute clock input: on hides the clicks while sync continues.
-- Pulse threshold: lower for missed pulses; raise for false triggers.
-- Pulse polarity: positive or negative edge.
+Opus menu > T2 > Pulse Sync > blue push > Input Rate
 
-Defaults: sync on, mute on, threshold 1024, positive polarity.
+24ppq (default)  One MIDI tick per input pulse
+48ppq            One MIDI tick per two input pulses
+96ppq            One MIDI tick per four input pulses
+1/4              24 MIDI ticks per quarter-note pulse
+1/8              12 MIDI ticks per eighth-note pulse
+1/16             6 MIDI ticks per sixteenth-note pulse
+1/32             3 MIDI ticks per thirty-second-note pulse
+
+The note-division modes wait for two pulses to measure tempo.
+The plugin schedules ticks between incoming pulses using the last
+measured interval. If the source stops, it finishes the current
+interval and stops generating ticks. Play/stop remains manual.
+
+Mute Clock Input defaults to on. Pulse Threshold and Pulse Polarity
+adjust detection. All seven modes feed 24 PPQ to the OP-1.
+
+Desktop tests passed. The owner confirmed this build works on the OP-1.

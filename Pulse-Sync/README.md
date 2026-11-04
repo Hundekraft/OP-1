@@ -1,7 +1,7 @@
-# Pulse Sync 0.1.3
+# Pulse Sync 0.1.4
 
 A background plugin for **Opus 2 on the original OP-1, firmware #246**. Feed a
-**line-level 24 PPQ clock** into the audio input to follow an external clock.
+**line-level pulse clock** into the audio input to follow an external clock.
 The input stays active for detection while **mute clock input** removes the stock
 dry-input monitoring clicks. No synth or effect slot is occupied. Play/stop stays
 manual; tape behavior stays as provided by the OP-1's Sync mode.
@@ -21,7 +21,11 @@ queue and clock-follow diagnostics. Internal input resampling is not automatical
 excluded; use line in. Separate sampling/recording taps still have access to input.
 Do not send a competing MIDI clock over USB.
 
-## Identity update
+## Input Rate
+
+Choose 24 PPQ (default), 48 PPQ, 96 PPQ, or 1/4, 1/8, 1/16, or 1/32 note pulses in the plugin settings. Every option feeds 24 PPQ MIDI clock to the OP-1. The note-division modes measure tempo from two pulses before scheduling the intervening ticks.
+
+## Identity update in 0.1.3
 
 ID: `esc.pulsesync` (Opus requires lowercase IDs). Author: `ESC_CODE`.
 Version 0.1.3 changes identity/version metadata only; its executable code is
@@ -29,6 +33,8 @@ identical to the hardware-confirmed 0.1.2 build. Replace the old file rather tha
 loading both identities. The new ID starts a new settings folder.
 
 ## Validation
+
+The owner confirmed 0.1.4 works on the original OP-1 on 4 November 2026.
 
 **The owner confirmed clock sync and input muting in version 0.1.2 on an original OP-1 on
 29 October 2026.** That is a check on one setup, not a measurement of every

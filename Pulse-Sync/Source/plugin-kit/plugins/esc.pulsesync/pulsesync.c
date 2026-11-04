@@ -1,4 +1,4 @@
-/* Pulse Sync 0.1.2, GPL-3.0-or-later. R246 only; see FIRMWARE.md. */
+/* Pulse Sync 0.1.4, GPL-3.0-or-later. R246 only; see FIRMWARE.md. */
 #include "opus_plugin.h"
 #include "op1fw.h"
 #include "pulse_core.h"
@@ -15,7 +15,8 @@ extern volatile unsigned test_ring[1024], test_wr, test_rd, test_mode, test_inpu
 #define FOLLOW test_follow
 #define FALLBACK test_fallback
 #define COM_MODE test_com
-static unsigned cycles(void) { return 0; }
+static unsigned test_cycles;
+static unsigned cycles(void) { return test_cycles; }
 static unsigned irq_off(void) { return 0; }
 static void irq_restore(unsigned mask) { (void)mask; }
 static void publish(void) { }
@@ -42,14 +43,72 @@ static volatile unsigned config;
 static volatile unsigned detected, input_peak, input_blocks, sent, dropped;
 static unsigned consumed, previous_config;
 static volatile unsigned sequence_blocks;
+
+#define RATE_SHIFT 19u
+#define DETECTOR_CONFIG 0x3bffffu /* Threshold, enable, polarity and rate. */
+#define MAX_CLOCK_INTERVAL 1600000000u /* Four seconds at 400 MHz. */
+
+enum { PPQ24, PPQ48, PPQ96, CLOCK_QUARTER, CLOCK_EIGHTH, CLOCK_SIXTEENTH, CLOCK_THIRTYSECOND };
+static const unsigned ticks_per_pulse[] = {24, 12, 6, 3};
+static const char *const rate_label[] = {"24 ppq", "48 ppq", "96 ppq", "1/4", "1/8", "1/16", "1/32"};
+static unsigned clock_rate, divider_phase, last_edge, interval, subdivision, next_tick;
+static unsigned have_edge;
+
+static void reset_conversion(void)
+{
+    divider_phase = have_edge = interval = subdivision = next_tick = 0;
+}
+
+/* Schedule interior ticks from the last measured interval. The next real
+ * edge replaces the predicted boundary, and silence cannot free-run. */
+static unsigned convert_pulses(unsigned rate, unsigned count, unsigned now)
+{
+    if (rate <= PPQ96) {
+        unsigned mask = (1u << rate) - 1u;
+        unsigned ticks = 0;
+        while (count--) {
+            if (!divider_phase) ++ticks;
+            divider_phase = (divider_phase + 1u) & mask;
+        }
+        return ticks;
+    }
+
+    unsigned elapsed = now - last_edge;
+    if (have_edge && (elapsed > MAX_CLOCK_INTERVAL || (interval && elapsed > 2u * interval)))
+        reset_conversion();
+
+    if (count) {
+        unsigned divisions = ticks_per_pulse[rate - CLOCK_QUARTER];
+        unsigned valid = have_edge && count == 1 && elapsed >= divisions;
+        last_edge = now;
+        have_edge = count == 1;
+        interval = valid ? elapsed : 0;
+        subdivision = valid ? elapsed / divisions : 0;
+        next_tick = subdivision;
+        return valid;
+    }
+
+    if (!subdivision || elapsed >= interval || elapsed < next_tick)
+        return 0;
+
+    /* A delayed callback may miss ticks. Never replay them as a burst. */
+    do {
+        next_tick += subdivision;
+    } while (next_tick <= elapsed);
+    if (next_tick >= subdivision * ticks_per_pulse[rate - CLOCK_QUARTER])
+        subdivision = 0;
+    return 1;
+}
 static void settings(const char *name, int value)
 {
     unsigned threshold = (unsigned)opus_setting(me, "threshold");
     unsigned enabled = (unsigned)opus_setting(me, "enabled");
     unsigned negative = (unsigned)opus_setting(me, "polarity");
     unsigned mute = (unsigned)opus_setting(me, "mute_input");
+    unsigned rate = (unsigned)opus_setting(me, "input_rate");
+    if (rate > CLOCK_THIRTYSECOND) rate = PPQ24;
     (void)name; (void)value;
-    config = threshold | (enabled << 16) | (negative << 17) | (mute << 18);
+    config = threshold | (enabled << 16) | (negative << 17) | (mute << 18) | (rate << RATE_SHIFT);
 }
 /* The kit generates the checked trampoline for this name. */
 int orig_01967614(int a, int b, int c);
@@ -57,9 +116,11 @@ int pulse_input(int a, int b, int c)
 {
     int result = orig_01967614(a, b, c);
     unsigned start = cycles(), cfg = config, peak = 0, ticks = 0;
+    unsigned rate = cfg >> RATE_SHIFT;
+    unsigned blank = rate <= PPQ96 ? 88u >> rate : 88u;
     ++input_blocks;
-    if ((cfg & 0x3ffffu) != previous_config) {
-        pulse_reset(&detector); previous_config = cfg & 0x3ffffu;
+    if ((cfg & DETECTOR_CONFIG) != previous_config) {
+        pulse_reset(&detector); previous_config = cfg & DETECTOR_CONFIG;
     }
     {
         for (unsigned i = 0; i < 64; ++i) {
@@ -67,7 +128,7 @@ int pulse_input(int a, int b, int c)
             unsigned magnitude = (unsigned)(sample < 0 ? -sample : sample);
             if (magnitude > peak) peak = magnitude;
             if (cfg & (1u << 16))
-                ticks += pulse_sample(&detector, sample, cfg & 65535u, (cfg >> 17) & 1u);
+                ticks += pulse_sample(&detector, sample, cfg & 65535u, (cfg >> 17) & 1u, blank);
         }
     } /* Source is selected by the user: no unverified mode interpretation. */
     input_peak = peak;
@@ -90,8 +151,24 @@ static void block(void)
     unsigned now = detected, count = now - consumed;
     ++sequence_blocks;
     consumed = now;
-    if (!(config & (1u << 16)) || (MODE != 2 && MODE != 4)) return;
-    if (count > 4) { dropped += count; return; } /* Do not replay a stale burst. */
+    unsigned cfg = config;
+    unsigned rate = cfg >> RATE_SHIFT;
+    if (!(cfg & (1u << 16)) || (MODE != 2 && MODE != 4)) {
+        reset_conversion();
+        clock_rate = rate;
+        return;
+    }
+    if (rate != clock_rate) {
+        reset_conversion();
+        clock_rate = rate;
+        count = 0;
+    }
+    if (count > 4) {
+        dropped += count;
+        reset_conversion();
+        return;
+    }
+    count = convert_pulses(rate, count, rate >= CLOCK_QUARTER ? cycles() : 0);
     for (unsigned i = 0; i < count; ++i) {
         unsigned mask = irq_off(), wr = WR, rd = RD;
         int ok = pulse_ring_room(wr, rd);
@@ -110,9 +187,9 @@ static void panel(void)
     char buf[40];
     unsigned mode = MODE;
     const char *state = !(config & (1u << 16)) ? "off" :
-        (mode != 2 && mode != 4) ? "select sync" : COM_MODE ? "exit com mode" : FOLLOW && !FALLBACK ? "following" : "24 ppq ready";
+        (mode != 2 && mode != 4) ? "select sync" : COM_MODE ? "exit com mode" : FOLLOW && !FALLBACK ? "following" : "ready";
     opus_panel_text(me, 0, 174, 29, 11, OPUS_COLOR_E2, state);
-    fw_snprintf(buf, sizeof buf, "pulses %u", detected);
+    fw_snprintf(buf, sizeof buf, "%s pulses %u", rate_label[config >> RATE_SHIFT], detected);
     opus_panel_text(me, 1, 174, 43, 9, OPUS_COLOR_TEXT, buf);
     fw_snprintf(buf, sizeof buf, "sent %u drop %u", sent, dropped);
     opus_panel_text(me, 2, 174, 57, 9, OPUS_COLOR_TEXT, buf);
@@ -144,6 +221,7 @@ int opl_init(struct opl_self *self)
     if (!firmware_ok()) return -246;
     me = self;
     settings(0, 0);
+    clock_rate = config >> RATE_SHIFT;
     opus_on_setting(self, settings);
     opus_on_block(self, block);
     opus_on_pre_fx(self, mute_clock_input);

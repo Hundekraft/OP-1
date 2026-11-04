@@ -3,7 +3,7 @@
 #define PULSE_CORE_H
 struct pulse_detector { unsigned armed, blank; };
 static void pulse_reset(struct pulse_detector *d) { d->armed = 0; d->blank = 0; }
-static unsigned pulse_sample(struct pulse_detector *d, int sample, unsigned threshold, unsigned negative)
+static unsigned pulse_sample(struct pulse_detector *d, int sample, unsigned threshold, unsigned negative, unsigned blank)
 {
     int x = negative ? -sample : sample;
     if (d->blank) --d->blank;
@@ -11,7 +11,7 @@ static unsigned pulse_sample(struct pulse_detector *d, int sample, unsigned thre
     if (d->armed && x >= (int)threshold) {
         d->armed = 0;
         if (!d->blank) {
-            d->blank = 88; /* 2 ms at 44.1 kHz; 4 ms at 22.05 kHz. */
+            d->blank = blank;
             return 1;
         }
     }

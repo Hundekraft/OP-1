@@ -3,12 +3,13 @@
 #include <limits.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 #define PULSE_HOST_TEST
 #include "../pulsesync.c"
 volatile short test_input[64];
 volatile unsigned test_ring[1024], test_wr, test_rd, test_mode, test_input_mode, test_rx_phase, test_follow, test_fallback, test_com;
-static int enabled = 1, threshold = 1024, polarity, mute_input=1;
+static int enabled = 1, threshold = 1024, polarity, mute_input=1, input_rate;
 static void (*block_cb)(void);
 static void (*mute_cb)(int,short *);
 static unsigned skips;
@@ -16,6 +17,7 @@ static unsigned original_calls;
 int orig_01967614(int a, int b, int c) { ++original_calls; assert(a==11 && b==22 && c==33); return 77; }
 int opus_setting(struct opl_self *s, const char *n) {
     (void)s;
+    if (!strcmp(n, "input_rate")) return input_rate;
     return !strcmp(n,"enabled") ? enabled : !strcmp(n,"threshold") ? threshold : !strcmp(n,"polarity") ? polarity : mute_input;
 }
 void opus_on_setting(struct opl_self *s, void (*f)(const char *,int)) { (void)s; (void)f; }
@@ -32,7 +34,7 @@ static void reset(void) {
     memset((void *)test_input,0,sizeof test_input);memset((void *)test_ring,0,sizeof test_ring);
     test_wr=test_rd=0;test_mode=2;test_input_mode=0;test_rx_phase=test_follow=test_com=0;test_fallback=1;sequence_blocks=0;
     detected=sent=dropped=input_peak=input_blocks=0;consumed=previous_config=0;
-    enabled=1;threshold=1024;polarity=0;mute_input=1;skips=0;pulse_reset(&detector);settings(0,0);
+    enabled=1;threshold=1024;polarity=0;mute_input=1;skips=0;pulse_reset(&detector);input_rate=0;test_cycles=0;clock_rate=0;reset_conversion();settings(0,0);
 }
 static void render(void) { short sound[64];
     for(unsigned i=0;i<64;i++)sound[i]=(short)(i*29-500);
@@ -43,15 +45,15 @@ static void render(void) { short sound[64];
 static void drain(void) {
     while(test_rd!=test_wr) { assert(test_ring[test_rd&1023u]==0xf80fu);test_rd++; }
 }
-static void stream(unsigned rate,unsigned bpm,int neg) {
-    reset();polarity=neg;settings(0,0);
+static void stream(unsigned rate,unsigned bpm,int neg,unsigned input) {
+    reset();polarity=neg;input_rate=(int)input;settings(0,0);block_cb();
     unsigned total=rate*8, expected=0, rng=42;
     for(unsigned t=0;t<total;t+=64) {
         for(unsigned i=0;i<64;i++) {
             unsigned n=t+i;
             /* Rational clock: fractional periods alternate by one sample. */
-            unsigned hz24=bpm*24u, tick=n*hz24/(rate*60u);
-            unsigned edge=(tick*rate*60u+hz24-1u)/hz24, phase=n-edge;
+            unsigned hz24=bpm*(24u << input), tick=(uint64_t)n*hz24/(rate*60u);
+            unsigned edge=((uint64_t)tick*rate*60u+hz24-1u)/hz24, phase=n-edge;
             if(n<total && phase==0 && tick!=0) ++expected;
             rng=rng*1664525u+1013904223u;
             int noise=(int)((rng>>24)&127)-64;
@@ -60,13 +62,57 @@ static void stream(unsigned rate,unsigned bpm,int neg) {
         }
         render();drain();
     }
-    assert(detected==expected);assert(sent==expected);assert(dropped==0);
+    assert(detected==expected);assert(sent==(expected+(1u<<input)-1u)/(1u<<input));assert(dropped==0);
 }
+static void sparse_clock(unsigned rate)
+{
+    reset();
+    input_rate = (int)rate;
+    settings(0, 0);
+    block_cb();
+    unsigned divisions = ticks_per_pulse[rate - CLOCK_QUARTER];
+    unsigned step = 1000000u, period = step * divisions;
+    unsigned start = UINT_MAX - period / 2;
+    test_cycles = start;
+    ++detected;
+    block_cb();
+    assert(sent == 0);
+
+    /* Verify exact output deadlines across counter rollover and stop. */
+    for (unsigned slot = 1; slot < divisions * 4u; ++slot) {
+        test_cycles = start + slot * step - 1u;
+        block_cb();
+        unsigned before = sent;
+        test_cycles++;
+        if (slot == divisions || slot == 2u * divisions) ++detected;
+        block_cb();
+        assert(sent - before == (slot >= divisions && slot < 3u * divisions));
+        drain();
+    }
+    assert(sent == divisions * 2u);
+    /* An expired tempo must be learned from two fresh pulses. */
+    test_cycles += period * 3u;
+    ++detected;
+    block_cb();
+    assert(sent == divisions * 2u);
+    test_cycles += period;
+    ++detected;
+    block_cb();
+    assert(sent == divisions * 2u + 1u);
+    test_mode = 0;
+    block_cb();
+    test_mode = 2;
+    test_cycles += step;
+    block_cb();
+    assert(sent == divisions * 2u + 1u);
+}
+
 int main(void) {
     struct opl_self self={sizeof self,"esc.pulsesync",0,0};assert(opl_init(&self)==0);
     for(unsigned r=0;r<2;r++)for(unsigned b=0;b<3;b++)for(int p=0;p<2;p++) {
-        const unsigned bpms[]={60,120,300};stream(r?22050:44100,bpms[b],p);
+        const unsigned bpms[]={60,120,300};for(unsigned input=0;input<=PPQ96;input++) stream(r?22050:44100,bpms[b],p,input);
     }
+    for(unsigned rate=CLOCK_QUARTER;rate<=CLOCK_THIRTYSECOND;rate++) sparse_clock(rate);
     /* No rising edge at startup while a gate is already high; no repeat on a held gate. */
     reset();for(unsigned i=0;i<64;i++)test_input[i]=12000;
     for(unsigned i=0;i<100;i++)render();assert(detected==0);
@@ -77,9 +123,9 @@ int main(void) {
     for(unsigned i=0;i<100;i++)block_cb();assert(detected==1 && sent==1);
     /* Retrigger noise inside blanking cannot become a delayed second trigger. */
     struct pulse_detector d={0,0};unsigned ticks=0;
-    ticks+=pulse_sample(&d,0,1024,0);ticks+=pulse_sample(&d,12000,1024,0);
-    ticks+=pulse_sample(&d,0,1024,0);
-    for(unsigned i=0;i<200;i++)ticks+=pulse_sample(&d,12000,1024,0);
+    ticks+=pulse_sample(&d,0,1024,0,88);ticks+=pulse_sample(&d,12000,1024,0,88);
+    ticks+=pulse_sample(&d,0,1024,0,88);
+    for(unsigned i=0;i<200;i++)ticks+=pulse_sample(&d,12000,1024,0,88);
     assert(ticks==1);
     /* Disabled and non-sync modes never inject; nonzero input flag does not block line input. */
     reset();enabled=0;settings(0,0);test_input[1]=10000;render();assert(sent==0 && detected==0);
@@ -113,5 +159,5 @@ int main(void) {
     reset();test_input[1]=10000;render();unsigned before=detected;
     mute_input=0;settings(0,0);render();assert(detected==before);
     reset();panel();assert(original_calls>0);
-    puts("PASS: 12 noisy 24-PPQ streams (60/120/300 BPM, both rates/polarities), held gates, ringing, stale buffers, enable/sync modes and nonzero-input-flag regression, queue bounds/rollover, stale bursts, extremes, original-call forwarding, mute policy, audio/capture preservation, mute toggle continuity.");
+    puts("PASS: 36 noisy 24/48/96-PPQ streams and all four sparse rates (60/120/300 BPM, both rates/polarities), held gates, ringing, stale buffers, enable/sync modes and nonzero-input-flag regression, queue bounds/rollover, stale bursts, extremes, original-call forwarding, mute policy, audio/capture preservation, mute toggle continuity.");
 }
