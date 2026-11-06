@@ -1,0 +1,19 @@
+opmod 1
+id esc.fluke
+name Fluke
+author Volker / Marbles by E. Gillet
+version 1.0.0
+core 2.8
+adds synth sequencer fluke
+uses blue_turn modal "length / range"
+uses green_turn modal "density or pulses / style"
+uses white_turn modal "rotate / direction"
+uses orange_turn modal "rate / swing"
+uses blue_push modal "new melody"
+uses green_push modal "density or pulses"
+uses white_push modal "next scale"
+uses orange_push modal "hold on or off"
+uses keyboard modal "set root and play"
+uses lift modal "save current pattern"
+uses drop modal "recall saved pattern"
+uses split modal "jump to step one, in sync"

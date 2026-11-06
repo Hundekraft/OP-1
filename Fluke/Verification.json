@@ -1,0 +1,92 @@
+{
+  "name": "Fluke",
+  "version": "1.0.0",
+  "date": "2026-11-06",
+  "id": "esc.fluke",
+  "generator": "Focused integer Marbles locked-loop/weighted nearest-note quantizer adaptation",
+  "changes": [
+    "Octave renamed Range; Type renamed Style",
+    "Shift page order: blue Range, green Style, white Direction, orange Swing"
+  ],
+  "binary_bytes": 79860,
+  "binary_sha256": "b1f7434ddfde3b3cbf12b97723839971777f97b1e8fe0f1c4b345b1874c7f522",
+  "blackfin_build": "PASS, warnings as errors",
+  "svg": "PASS, zero errors/warnings",
+  "host_tests": "PASS ASan/UBSan functional regression with updated encoder mapping and Style readout; save/recall, jump, clock and range tests passed.",
+  "layout": "Native text color matched against Bubbler 1.1.13 source palette; physical OP-1 display verification pending.",
+  "source_audit": "PASS: removed prior generator and its branding; no generator-choice setting or original Max license in delivery",
+  "hardware": "PENDING: timing, key routing, flash persistence, display and performance",
+  "cpu": "UNMEASURED",
+  "sources": {
+    "fetched": "2026-11-05",
+    "repository": "pichenettes/eurorack",
+    "files": [
+      {
+        "file": "random_sequence.h",
+        "blob_sha": "7265cf3136d70b5c3d4cbaf2bbb15652cd50e37f",
+        "url": "https://github.com/pichenettes/eurorack/blob/master/marbles/random/random_sequence.h"
+      },
+      {
+        "file": "distributions.h",
+        "blob_sha": "f107241befd3429449e85f0781c3c141b7532db8",
+        "url": "https://github.com/pichenettes/eurorack/blob/master/marbles/random/distributions.h"
+      },
+      {
+        "file": "quantizer.cc",
+        "blob_sha": "4741141a9aed57da383dd8d8107c331a00ac9035",
+        "url": "https://github.com/pichenettes/eurorack/blob/master/marbles/random/quantizer.cc"
+      },
+      {
+        "file": "output_channel.cc",
+        "blob_sha": "40d10c2aad3c3eea7dffc13fb77351e508966f2c",
+        "url": "https://github.com/pichenettes/eurorack/blob/master/marbles/random/output_channel.cc"
+      },
+      {
+        "file": "x_y_generator.cc",
+        "blob_sha": "dd1b108b9800031d1670259e4512e10fd32e0e04",
+        "url": "https://github.com/pichenettes/eurorack/blob/master/marbles/random/x_y_generator.cc"
+      },
+      {
+        "file": "quantizer.h",
+        "blob_sha": "008ea35730c87d6c652e96d3f4be81efb071bb43",
+        "url": "https://github.com/pichenettes/eurorack/blob/master/marbles/random/quantizer.h"
+      },
+      {
+        "file": "settings.cc",
+        "blob_sha": "2946a913fc3df5ec33984c436e6a9b55de4856dd",
+        "url": "https://github.com/pichenettes/eurorack/blob/master/marbles/settings.cc"
+      }
+    ]
+  },
+  "source_sha256s": {
+    "Source/SDK-LICENSE": "e57f1c320b8cf8798a7d2ff83a6f9e06a33a03585f6e065fea97f1d86db84052",
+    "Source/SDK-SOURCE.json": "8d6efc76c219787e4a70066b38b1ae41805f6482581c8a1a62e669020e2ee3fa",
+    "Source/esc.fluke/LICENSE-Marbles.txt": "e9b61801c25d7b641730ee1800e3bfee8d8fe312ee761d6302a1387a5a7f1c56",
+    "Source/esc.fluke/README.md": "ba27bcaf7175003e6241d703e531746ed9a954124f875f16785b5719c57c9e9c",
+    "Source/esc.fluke/art.h": "85c0a5544494adbebfdaef32761baff255b40993e1904066aa7305fb9b638d2f",
+    "Source/esc.fluke/core.h": "7869bb6e09fa728826dd31e5d0f1a525f3f099aab5bd006e1bd3ec60e3c4ab50",
+    "Source/esc.fluke/fluke.c": "475a9d9218b161f03da9d81d462ca3ab3fe5510f7553f41e96c5f661083d5ce2",
+    "Source/esc.fluke/manifest.txt": "6ab79336a41d48a062bdccf79f7d1403cc0ec68fe420bf76c447c653d2f1badc",
+    "Source/esc.fluke/marbles-reference/SOURCES.json": "723843e7bd0d181bb68361010ced3ccc8849200cb8bdca1ea7b33cf035e9f34a",
+    "Source/esc.fluke/marbles-reference/distributions.h.txt": "26edcae0ab4b7bf78acec65f71068ddd50879a255f86467dc19470a4da20f352",
+    "Source/esc.fluke/marbles-reference/output_channel.cc.txt": "faec9c3b94085db44763375098dccd0f7200c0983d3a668e8fb00b35bf1ea35b",
+    "Source/esc.fluke/marbles-reference/quantizer.cc.txt": "3107ea32baf513bac022c3cd274915294ccbc7a64c230ba8a4f734efed87b594",
+    "Source/esc.fluke/marbles-reference/quantizer.h.txt": "90147139e310d14ba1929ad1b7cdffe10c4bc9a2d427d267be1874a43b24acd0",
+    "Source/esc.fluke/marbles-reference/random_sequence.h.txt": "b8d4082cf834dea1dd89c632056fc0719cea5f4f1b00f97739c219e687a78112",
+    "Source/esc.fluke/marbles-reference/settings.cc.txt": "6e8982b13ce37e5c823219d4591a705816ce42fcba1c646eabed170eaee7734f",
+    "Source/esc.fluke/marbles-reference/x_y_generator.cc.txt": "3c56318ac98c56afbe5732e49a349c2077b5d773622d5b3628e44eaf8e95e4e5",
+    "Source/esc.fluke/marbles_melody.h": "92d42255d79d6b26c19b0616bdf6b66698c7cc870d51a87c31e59a3848ee9f85",
+    "Source/esc.fluke/phrase_rules.h": "2dbd9669a1cbd3c12a702672c49a805d286521b1ad16ab413cc79c252fc92e62",
+    "Source/esc.fluke/screen.svg": "f08ab1b5f16eb367de6ab312390050bcdb05c744e6b6e4d12349c22b3b3a32c7",
+    "Source/esc.fluke/snapshot.h": "f1ffffac1fbf0215e253254bdc60b227acfc52c6c1deb8b92e836282231a3ae4",
+    "Source/sdk/op1fw.h": "d8c333e7cd619f7670ca69e56ec521c86b4e34ee45a2e153abb2f21b5a825fac",
+    "Source/sdk/opus_plugin.h": "342d2fab2672a31a74499c0ff31a6348cb3bdf606a9c8d36125f1eaab42a992b",
+    "Source/tests/test_fluke.c": "0b6813cc7cd24618943a1f390374487a9894180526ba26a4837eff81ea8f7499",
+    "Source/tests/test_save_stutter.c": "4472d7bbf70bfe7493a6a6e257fc8cdf2769ce146444fc6b71dc80758d55cf79",
+    "Source/tests/test_variation.c": "583f7f61bc7e476562094404aa794071a672d8adb9b7831add59fea020e8da17"
+  },
+  "renderer": "Native fw_text_new / fw_set_text / fw_text_draw plus arcade SVG; custom pixel-text renderer removed from executable/delivery.",
+  "manual": "Fluke Quick Guide.md / .txt",
+  "limitations": "Light single-voice preferences; no fixed arch or mandatory tonic/fifth cadence, no strict counterpoint checking. Root at range 0 necessarily has one pitch; wider ranges allow octave variety.",
+  "documentation": "README derived from user-updated Pages manual, exported 2026-11-06; all four PDF pages inspected. Release ZIP contains exactly the device and PDF manual."
+}
