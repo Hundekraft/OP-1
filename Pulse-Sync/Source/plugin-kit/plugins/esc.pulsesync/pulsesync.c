@@ -1,4 +1,4 @@
-/* Pulse Sync 0.1.4, GPL-3.0-or-later. R246 only; see FIRMWARE.md. */
+/* Pulse Sync 0.1.5, GPL-3.0-or-later. R246 only; see FIRMWARE.md. */
 #include "opus_plugin.h"
 #include "op1fw.h"
 #include "pulse_core.h"
@@ -46,6 +46,14 @@ static volatile unsigned sequence_blocks;
 
 #define RATE_SHIFT 19u
 #define DETECTOR_CONFIG 0x3bffffu /* Threshold, enable, polarity and rate. */
+#define AUTOSTART (1u << 22)
+#define PULSE_PRIORITY (1u << 23)
+#define RATE_MASK 7u
+#define MIDI_TAG 0x50530000u
+#define USB_TIMEOUT 200000000u
+#define MIN_PULSE_TIMEOUT 40000000u
+#define FIRST_PULSE_TIMEOUT 1600000000u
+
 #define MAX_CLOCK_INTERVAL 1600000000u /* Four seconds at 400 MHz. */
 
 enum { PPQ24, PPQ48, PPQ96, CLOCK_QUARTER, CLOCK_EIGHTH, CLOCK_SIXTEENTH, CLOCK_THIRTYSECOND };
@@ -53,6 +61,96 @@ static const unsigned ticks_per_pulse[] = {24, 12, 6, 3};
 static const char *const rate_label[] = {"24 ppq", "48 ppq", "96 ppq", "1/4", "1/8", "1/16", "1/32"};
 static unsigned clock_rate, divider_phase, last_edge, interval, subdivision, next_tick;
 static unsigned have_edge;
+
+enum clock_source { SOURCE_NONE, SOURCE_USB, SOURCE_PULSE };
+static volatile unsigned selected_source;
+static unsigned usb_seen, usb_last, pulse_seen, pulse_last, pulse_period;
+static unsigned transport_running;
+static const unsigned threshold_levels[] = {
+    64, 128, 256, 512, 1024, 2048, 4096, 8192, 12000, 16000
+};
+
+static unsigned pulse_timeout(void)
+{
+    if (!pulse_period) return FIRST_PULSE_TIMEOUT;
+    unsigned timeout = pulse_period < MAX_CLOCK_INTERVAL / 2u
+        ? pulse_period * 2u : MAX_CLOCK_INTERVAL;
+    return timeout < MIN_PULSE_TIMEOUT ? MIN_PULSE_TIMEOUT : timeout;
+}
+
+static unsigned choose_source(unsigned cfg, unsigned now)
+{
+    unsigned pulse_active = pulse_seen && now - pulse_last <= pulse_timeout();
+    unsigned usb_active = usb_seen && now - usb_last <= USB_TIMEOUT;
+    if (cfg & PULSE_PRIORITY) {
+        if (pulse_active) return SOURCE_PULSE;
+        if (usb_active) return SOURCE_USB;
+    } else {
+        if (usb_active) return SOURCE_USB;
+        if (pulse_active) return SOURCE_PULSE;
+    }
+    return SOURCE_NONE;
+}
+
+/* Called by the two verified stock realtime-message sync-mode queries.
+ * Injected messages use the otherwise unused realtime padding bytes as a tag.
+ * Stock R246 reads only the status byte in this branch. */
+int clock_sync_mode(const unsigned *packet)
+{
+    unsigned start = cycles();
+    unsigned cfg = config;
+    int result = (int)MODE;
+    unsigned status = (*packet >> 8) & 255u;
+    unsigned tagged = (*packet & 0xffff0000u) == MIDI_TAG;
+    if (cfg & (1u << 16)) {
+        if (!tagged && status == 0xf8u) {
+            usb_seen = 1;
+            usb_last = cycles();
+        }
+        unsigned source = choose_source(cfg, cycles());
+        if (tagged && source == SOURCE_USB) result = 0;
+        if (!tagged && source == SOURCE_PULSE &&
+            (status == 0xf8u || status == 0xfau || status == 0xfbu || status == 0xfcu))
+            result = 0;
+    }
+    opus_cpu_charge(me, cycles() - start);
+    return result;
+}
+
+static int queue_message(unsigned status)
+{
+    unsigned mask = irq_off();
+    unsigned wr = WR, rd = RD;
+    int ok = pulse_ring_room(wr, rd);
+    if (ok) {
+        RING[wr & 1023u] = MIDI_TAG | (status << 8) | 0x0fu;
+        publish();
+        WR = wr + 1u;
+        publish();
+    }
+    irq_restore(mask);
+    if (!ok) ++dropped;
+    return ok;
+}
+
+/* Observe external USB packets without consuming or editing their queue slots. */
+static void observe_usb(unsigned now)
+{
+    unsigned mask = irq_off();
+    unsigned rd = RD, count = WR - rd;
+    if (count <= 1023u) {
+        for (unsigned i = 0; i < count; ++i) {
+            unsigned packet = RING[(rd + i) & 1023u];
+            if ((packet & 0xffff0000u) != MIDI_TAG &&
+                (packet & 0xff0fu) == 0xf80fu) {
+                usb_seen = 1;
+                usb_last = now;
+                break;
+            }
+        }
+    }
+    irq_restore(mask);
+}
 
 static void reset_conversion(void)
 {
@@ -101,14 +199,18 @@ static unsigned convert_pulses(unsigned rate, unsigned count, unsigned now)
 }
 static void settings(const char *name, int value)
 {
-    unsigned threshold = (unsigned)opus_setting(me, "threshold");
+    unsigned level = (unsigned)opus_setting(me, "threshold");
+    if (level < 1 || level > 10) level = 5;
+    unsigned threshold = threshold_levels[level - 1];
     unsigned enabled = (unsigned)opus_setting(me, "enabled");
     unsigned negative = (unsigned)opus_setting(me, "polarity");
     unsigned mute = (unsigned)opus_setting(me, "mute_input");
     unsigned rate = (unsigned)opus_setting(me, "input_rate");
     if (rate > CLOCK_THIRTYSECOND) rate = PPQ24;
+    unsigned automatic = (unsigned)opus_setting(me, "autostart");
+    unsigned priority = (unsigned)opus_setting(me, "priority");
     (void)name; (void)value;
-    config = threshold | (enabled << 16) | (negative << 17) | (mute << 18) | (rate << RATE_SHIFT);
+    config = threshold | (enabled << 16) | (negative << 17) | (mute << 18) | (rate << RATE_SHIFT) | (automatic << 22) | (priority << 23);
 }
 /* The kit generates the checked trampoline for this name. */
 int orig_01967614(int a, int b, int c);
@@ -116,7 +218,7 @@ int pulse_input(int a, int b, int c)
 {
     int result = orig_01967614(a, b, c);
     unsigned start = cycles(), cfg = config, peak = 0, ticks = 0;
-    unsigned rate = cfg >> RATE_SHIFT;
+    unsigned rate = (cfg >> RATE_SHIFT) & RATE_MASK;
     unsigned blank = rate <= PPQ96 ? 88u >> rate : 88u;
     ++input_blocks;
     if ((cfg & DETECTOR_CONFIG) != previous_config) {
@@ -148,38 +250,68 @@ static void mute_clock_input(int instrument, short *buf)
 /* Sequencer thread, before the normal stock MIDI drain. */
 static void block(void)
 {
-    unsigned now = detected, count = now - consumed;
-    ++sequence_blocks;
-    consumed = now;
+    unsigned pulse_count = detected;
+    unsigned count = pulse_count - consumed;
+    unsigned now = cycles();
     unsigned cfg = config;
-    unsigned rate = cfg >> RATE_SHIFT;
+    unsigned rate = (cfg >> RATE_SHIFT) & RATE_MASK;
+    ++sequence_blocks;
+    consumed = pulse_count;
+
     if (!(cfg & (1u << 16)) || (MODE != 2 && MODE != 4)) {
         reset_conversion();
+        pulse_seen = usb_seen = transport_running = 0;
+        selected_source = SOURCE_NONE;
         clock_rate = rate;
         return;
     }
     if (rate != clock_rate) {
         reset_conversion();
+        pulse_seen = 0;
+        pulse_period = 0;
         clock_rate = rate;
         count = 0;
     }
     if (count > 4) {
         dropped += count;
         reset_conversion();
+        count = 0;
+    }
+
+    unsigned was_active = pulse_seen && now - pulse_last <= pulse_timeout();
+    if (count) {
+        unsigned elapsed = now - pulse_last;
+        if (was_active && elapsed && elapsed <= MAX_CLOCK_INTERVAL)
+            pulse_period = elapsed / count;
+        else
+            pulse_period = 0;
+        pulse_last = now;
+        pulse_seen = 1;
+    }
+    observe_usb(now);
+    unsigned source = choose_source(cfg, now);
+    if (source != selected_source) reset_conversion();
+    selected_source = source;
+
+    if (!(cfg & AUTOSTART)) transport_running = 0;
+    if (source == SOURCE_USB) {
+        transport_running = 0; /* The USB transport now owns playback. */
+        reset_conversion();
         return;
     }
-    count = convert_pulses(rate, count, rate >= CLOCK_QUARTER ? cycles() : 0);
-    for (unsigned i = 0; i < count; ++i) {
-        unsigned mask = irq_off(), wr = WR, rd = RD;
-        int ok = pulse_ring_room(wr, rd);
-        if (ok) {
-            RING[wr & 1023u] = 0x0000f80fu;
-            publish();
-            WR = wr + 1u;
-            publish();
-        }
-        irq_restore(mask);
-        if (ok) ++sent; else ++dropped;
+    if (source == SOURCE_NONE) {
+        if (transport_running && queue_message(0xfcu)) transport_running = 0;
+        reset_conversion();
+        return;
+    }
+    if (count && !was_active) reset_conversion();
+    if ((cfg & AUTOSTART) && count && !transport_running) {
+        if (!queue_message(0xfau)) return;
+        transport_running = 1;
+    }
+    unsigned ticks = convert_pulses(rate, count, now);
+    for (unsigned i = 0; i < ticks; ++i) {
+        if (queue_message(0xf8u)) ++sent;
     }
 }
 static void panel(void)
@@ -189,7 +321,7 @@ static void panel(void)
     const char *state = !(config & (1u << 16)) ? "off" :
         (mode != 2 && mode != 4) ? "select sync" : COM_MODE ? "exit com mode" : FOLLOW && !FALLBACK ? "following" : "ready";
     opus_panel_text(me, 0, 174, 29, 11, OPUS_COLOR_E2, state);
-    fw_snprintf(buf, sizeof buf, "%s pulses %u", rate_label[config >> RATE_SHIFT], detected);
+    fw_snprintf(buf, sizeof buf, "%s pulses %u", rate_label[(config >> RATE_SHIFT) & RATE_MASK], detected);
     opus_panel_text(me, 1, 174, 43, 9, OPUS_COLOR_TEXT, buf);
     fw_snprintf(buf, sizeof buf, "sent %u drop %u", sent, dropped);
     opus_panel_text(me, 2, 174, 57, 9, OPUS_COLOR_TEXT, buf);
@@ -199,7 +331,9 @@ static void panel(void)
     opus_panel_text(me, 4, 174, 85, 9, OPUS_COLOR_DIM, buf);
     fw_snprintf(buf, sizeof buf, "seq %u q %u", sequence_blocks, WR - RD);
     opus_panel_text(me, 5, 174, 99, 9, OPUS_COLOR_DIM, buf);
-    fw_snprintf(buf, sizeof buf, "rx %u mode %u", RX_PHASE, INPUT_MODE);
+    const char *source = selected_source == SOURCE_USB ? "usb" :
+        selected_source == SOURCE_PULSE ? "pulse" : "waiting";
+    fw_snprintf(buf, sizeof buf, "%s rx %u", source, RX_PHASE);
     opus_panel_text(me, 6, 174, 113, 9, OPUS_COLOR_TEXT, buf);
     fw_snprintf(buf, sizeof buf, "ext %u fallback %u", (unsigned)FOLLOW, (unsigned)FALLBACK);
     opus_panel_text(me, 7, 174, 125, 9, OPUS_COLOR_TEXT, buf);
@@ -221,7 +355,7 @@ int opl_init(struct opl_self *self)
     if (!firmware_ok()) return -246;
     me = self;
     settings(0, 0);
-    clock_rate = config >> RATE_SHIFT;
+    clock_rate = (config >> RATE_SHIFT) & RATE_MASK;
     opus_on_setting(self, settings);
     opus_on_block(self, block);
     opus_on_pre_fx(self, mute_clock_input);

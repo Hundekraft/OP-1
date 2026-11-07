@@ -1,24 +1,64 @@
+Pulse Sync 0.1.5, 2026-11-07
+
+Desktop/build PASS
+- Warnings-as-errors Blackfin GCC build and official two-base relocation checks.
+- Official read-back confirms esc.pulsesync by ESC_CODE, version 0.1.5,
+  threshold 1..10 default 5, autostart off by default, and priority usb by default.
+- Previous detector/converter tests and new AutoStart/Stop/priority tests pass
+  with address/undefined-behavior sanitizers.
+- Checked firmware calls match both realtime sync queries for R246.
+- Hardware CPU remains unmeasured with normal protection.
+
+Hardware status
+The owner confirmed 0.1.4 works. Version 0.1.5 needs a fresh hardware test of
+automatic transport, source handover, clock filtering and CPU cost.
+No checked device line is claimed for this version.
+
+PASS: 36 noisy 24/48/96-PPQ streams and all four sparse rates (60/120/300 BPM, both rates/polarities), held gates, ringing, stale buffers, enable/sync modes and nonzero-input-flag regression, queue bounds/rollover, stale bursts, extremes, original-call forwarding, mute policy, audio/capture preservation, mute toggle continuity, threshold mapping, AutoStart/Stop and clock-source arbitration.
+
 opmod     1
 id        esc.pulsesync
 name      Pulse Sync
 author    ESC_CODE
-version   0.1.4
+version   0.1.5
 core      2.0
 adds      convert external audio pulses to 24 ppq midi clock
 setting   enabled off,on on "pulse sync"
 setting   mute_input off,on on "mute clock input"
-setting   threshold 64 16000 1024 "pulse threshold"
+setting   threshold 1 10 5 "pulse threshold"
 setting   polarity positive,negative positive "pulse polarity"
 place     jump 0x01967614 pulse_input expect 00e80000 as input_meter
 setting   input_rate 24ppq,48ppq,96ppq,1/4,1/8,1/16,1/32 24ppq "input rate"
+setting   autostart off,on off "autostart"
+setting   priority usb,pulse usb "clock priority"
+place     call 0x019e3938 pulse_sync_filter expect 03e32ed7 as midi_sync_filter_a
+place     call 0x019e3978 pulse_sync_filter expect 03e30ed7 as midi_sync_filter_b
 # built by op1mod plugin
 deep      fw_snprintf
-ram       image 2680 zero 76
+ram       image 4444 zero 104
 imports   9
 cpu       unmeasured
 checked: none (no checked line: not recorded as tested)
-image 2680 bytes, zero fill 76, entry +0x7d0, 205 relocations, imports: fw_snprintf, opus_cpu_charge, opus_on_block, opus_on_panel, opus_on_pre_fx, opus_on_setting, opus_panel_text, opus_setting, opus_skip_dry_input
-place input_meter: jump 0x01967614 -> image+0x67c, expects 00e80000
-PASS: 36 noisy 24/48/96-PPQ streams and all four sparse rates (60/120/300 BPM, both rates/polarities), held gates, ringing, stale buffers, enable/sync modes and nonzero-input-flag regression, queue bounds/rollover, stale bursts, extremes, original-call forwarding, mute policy, audio/capture preservation, mute toggle continuity.
+image 4444 bytes, zero fill 104, entry +0xdbc, 345 relocations, imports: fw_snprintf, opus_cpu_charge, opus_on_block, opus_on_panel, opus_on_pre_fx, opus_on_setting, opus_panel_text, opus_setting, opus_skip_dry_input
+place input_meter: jump 0x01967614 -> image+0xc64, expects 00e80000
+place midi_sync_filter_a: call 0x019e3938 -> image+0xe90, expects 03e32ed7
+place midi_sync_filter_b: call 0x019e3978 -> image+0xe90, expects 03e30ed7
 
-The owner confirmed version 0.1.4 works on the original OP-1 on 2026-11-04. CPU and timing jitter are unmeasured.
+{
+  "file": "op1_246_opus2.op1",
+  "sha256": "1be7eeda076c8c4e502d007147005f92a0b96a0de14779a65356660de8f94ddd",
+  "firmware_signatures": "PASS",
+  "checks": 8,
+  "import_names_present": {
+    "fw_snprintf": true,
+    "opus_cpu_charge": true,
+    "opus_on_block": true,
+    "opus_on_panel": true,
+    "opus_on_setting": true,
+    "opus_panel_text": true,
+    "opus_setting": true,
+    "opus_on_pre_fx": true,
+    "opus_skip_dry_input": true
+  },
+  "scope": "static bytes and name presence only; not loader execution or hardware"
+}

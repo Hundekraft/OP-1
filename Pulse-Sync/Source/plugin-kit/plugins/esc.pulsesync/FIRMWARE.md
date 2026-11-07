@@ -69,3 +69,21 @@ After installing version 0.1.2 the owner confirmed that both clock sync and dry-
 ## 0.1.3 identity update
 
 ID is now esc.pulsesync; author ESC_CODE. Uppercase IDs are rejected by the Opus kit. The complete executable image, imports, relocations, entry, memory and hook layout match 0.1.2 exactly. Only manifest metadata changes; the new id uses a separate settings folder.
+
+
+## Version 0.1.5 transport and priority
+
+Two additional checked call places intercept 0x019e3938 (03e32ed7) and
+0x019e3978 (03e30ed7), both original calls to the selected sync-mode getter
+0x01a5e794. At these points P5 still addresses the current USB-MIDI packet.
+The assembly wrapper saves caller registers, passes P5 to clock_sync_mode,
+and restores registers while returning the filtered mode in R0.
+
+The normal block callback observes USB clock in the pending receive queue,
+selects the active clock, and appends pulse-origin Start/Clock/Stop messages.
+Generated messages use high padding word 0x5053 as an origin tag. The checked
+stock realtime branch reads the status byte and ignores those padding bytes.
+Filtering occurs at both stock mode queries, including newly arrived USB
+clocks that reach the parser after the block callback. Notes and ordinary
+MIDI data retain their normal parser paths. Real-device coexistence and
+transport testing remain pending for 0.1.5.

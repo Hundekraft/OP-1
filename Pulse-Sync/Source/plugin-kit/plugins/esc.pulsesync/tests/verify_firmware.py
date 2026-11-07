@@ -34,6 +34,8 @@ def read(address, size):
     assert all(coverage), f'{address:#x} not wholly in plain blocks'
     return bytes(result)
 expected = {
+    0x019e3938: "03e32ed7",
+    0x019e3978: "03e30ed7",
     0x01967614: '00e80000c4040ce1',  # input meter and generated trampoline prologue
     0x019e31a4: '00e80600e305a66f08e1100548e1ab01',  # stock receive parser / queue address
     0x019e3988: '20e41900206420e6190060a0000c0918',  # F8 adds four internal ticks
@@ -43,7 +45,7 @@ expected = {
 }
 for address, wanted in expected.items():
     assert read(address, len(bytes.fromhex(wanted))).hex() == wanted, f'mismatch at {address:#x}'
-services = ['fw_snprintf','opus_cpu_charge','opus_on_block','opus_on_panel','opus_on_setting','opus_panel_text','opus_setting']
+services = ['fw_snprintf','opus_cpu_charge','opus_on_block','opus_on_panel','opus_on_setting','opus_panel_text','opus_setting','opus_on_pre_fx','opus_skip_dry_input']
 plain = b''.join(data for _,data in blocks)
 print(json.dumps({'file': a.firmware.name, 'sha256': hashlib.sha256(package).hexdigest(),
     'firmware_signatures': 'PASS', 'checks': len(expected),

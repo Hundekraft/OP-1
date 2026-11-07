@@ -1,10 +1,9 @@
-# Pulse Sync 0.1.4
+# Pulse Sync 0.1.5
 
 A background plugin for **Opus 2 on the original OP-1, firmware #246**. Feed a
 **line-level pulse clock** into the audio input to follow an external clock.
 The input stays active for detection while **mute clock input** removes the stock
-dry-input monitoring clicks. No synth or effect slot is occupied. Play/stop stays
-manual; tape behavior stays as provided by the OP-1's Sync mode.
+dry-input monitoring clicks. No synth or effect slot is occupied. AutoStart can follow pulse-stream transport.
 
 ## Download and use
 
@@ -16,10 +15,19 @@ See MANUAL.txt for the very short manual. Attenuate modular CV to a
 suitable line level before connecting it to the OP-1's audio input.
 
 Settings are in the Opus menu, T2, Pulse Sync, blue push: enable, mute clock input,
-threshold (default 1024) and polarity (default positive). The panel includes pulse,
+threshold (1–10, default 5), polarity (default positive), AutoStart (default off),
+and Clock Priority (default USB). The panel includes pulse,
 queue and clock-follow diagnostics. Internal input resampling is not automatically
 excluded; use line in. Separate sampling/recording taps still have access to input.
-Do not send a competing MIDI clock over USB.
+Clock Priority selects USB or Pulse when both are active and falls back to the other source when the preferred clock disappears.
+
+## AutoStart and clock priority
+
+With AutoStart on, the first selected pulse sends MIDI Start. AutoStop follows after two expected pulse intervals, clamped to 100 ms–4 seconds. Acquisition after a single pulse uses a 4-second timeout. AutoStart off provides manual play/stop.
+
+USB clock expires after 500 ms without clock ticks. USB transport controls playback when USB becomes selected. Pulse-driven AutoStart/AutoStop applies while Pulse is selected. The panel displays the selected source.
+
+Higher Pulse Threshold levels require stronger input. Default 5 corresponds to the previous raw threshold of 1024. Upgrading resets saved raw thresholds to 5.
 
 ## Input Rate
 
@@ -33,6 +41,8 @@ identical to the hardware-confirmed 0.1.2 build. Replace the old file rather tha
 loading both identities. The new ID starts a new settings folder.
 
 ## Validation
+
+Version 0.1.5 passed desktop build, conversion, threshold, transport and priority tests. Its new automatic transport and source handover features await OP-1 testing. CPU and jitter remain unmeasured.
 
 The owner confirmed 0.1.4 works on the original OP-1 on 4 November 2026.
 
@@ -72,3 +82,4 @@ GNU GPL v3; see [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md). Individual files
 retain their original license notices, including any permission for later GPL versions.
 Opus and its GPL-3.0 plugin kit are by [LizardMan](https://github.com/LizardMan245/opus).
 The kit's original license and notices are preserved. No TE or Opus firmware is distributed.
+

@@ -2,13 +2,16 @@
 
 Tools and plugins for the **original Teenage Engineering OP-1**.
 
-## Pulse Sync 0.1.4
+## Pulse Sync 0.1.5
 
 Synchronize the OP-1 to a pulse clock (24, 48, or 96 PPQ, or 1/4 through 1/32 note pulses) through its audio input, with
 clock clicks removed from the dry monitor. Requires **Opus 2 on firmware #246**.
+
+Version 0.1.5 adds a 1–10 pulse threshold, AutoStart/AutoStop, and USB/Pulse clock priority. Desktop tests pass. The new transport and priority features await an OP-1 hardware test.
 
 ## License and credits
 
 GNU GPL v3; see [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md).
 Built with the GPL-3.0 [Opus plugin kit by LizardMan](https://github.com/LizardMan245/opus/tree/main/plugin-kit).
 The complete plugin source and kit are included. No firmware is distributed.
+
