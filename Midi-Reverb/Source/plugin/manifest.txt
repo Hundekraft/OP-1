@@ -1,0 +1,10 @@
+opmod 1
+id esc.midireverb
+name Midi-Reverb
+author ESC_CODE
+version 1.0.0
+core 2.31
+adds effect midireverb
+uses orange_push noshift nofn modal "change rom"
+setting reconstruction off,on on "output-filter"
+setting engine original,lowcpu original "engine"
