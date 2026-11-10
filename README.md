@@ -18,8 +18,7 @@ Three SoundHack delay ports by **ESC_CODE**, based on **Tom Erbe’s +bubbler, +
 ![Delayed](Delay-Trio/Screenshots/Delayed.png)
 ![Pitch Delay](Delay-Trio/Screenshots/Pitch-Delay.png)
 
-Requires **original OP-1 firmware 246 and Opus core 2.31+**. All three have a one-second maximum base delay and support native first/second instrument FX slots. Master use passes audio dry. Two instances have independent controls and histories. See the device README for upgrade instructions and verification details.
-
+Requires **original OP-1 firmware 246 and Opus core 2.31+**.
 Credit to [Tom Erbe / SoundHack](https://www.soundhack.com/) for the original algorithms, [LizardMan245 and the Opus contributors](https://github.com/LizardMan245/opus) for the framework, and [SquareWave Studio](https://squarewave-studio.github.io/op1-design-kit/) for design guidance. [Full credits and licences](Delay-Trio/Credits.md).
 
 ## Pulse Sync 1.0.0
@@ -28,11 +27,11 @@ A background plugin by **ESC_CODE** that synchronizes the original OP-1 to an ex
 
 [**Download Pulse Sync**](https://raw.githubusercontent.com/VolkerJunginger/OP-1/main/Pulse-Sync/pulsesync.opmod) · [**Manual, settings and source**](Pulse-Sync) · [**Complete package**](Pulse-Sync/downloads/Pulse-Sync-1.0.0.zip)
 
-Requires **original OP-1 firmware 246 and Opus 2**. Version 1.0.0 retains the 0.1.5 implementation; automatic transport, simultaneous clock sources and CPU load still await hardware testing. [Opus attribution and licences](Pulse-Sync/NOTICE.md).
+Requires **original OP-1 firmware 246 and Opus 2**. [Opus attribution and licences](Pulse-Sync/NOTICE.md).
 
 ## Midi-Reverb 1.0
 
-A mono ROM-based reverb and effects device by **ESC_CODE**, for the original OP-1 with **Opus core 2.31+**. Runs in the first or second instrument FX slot with the same screen and controls: Feedback, Cutoff, Mix and Program; Orange press changes ROM. Includes Original and approximate Low CPU engines and an optional Output-Filter. Master audio passes through.
+A mono ROM-based reverb and effects device by **ESC_CODE**, for the original OP-1 with **Opus core 2.31+**.Feedback, Cutoff, Mix and Program; Orange press changes ROM. Includes Original and approximate Low CPU engines and an optional Output-Filter. Master audio passes through.
 
 [**Download Midi-Reverb**](https://raw.githubusercontent.com/VolkerJunginger/OP-1/main/Midi-Reverb/midireverb.opmod) · [**Installation, ROM requirements, controls and source**](Midi-Reverb) · [**Complete package**](Midi-Reverb/Midi-Reverb-1.0.0.zip)
 
@@ -40,8 +39,7 @@ A mono ROM-based reverb and effects device by **ESC_CODE**, for the original OP-
 
 **ROM dumps are required and are not included.** Supply your own compatible dumps and rename them as described in the device README. Credit to [Opus](https://github.com/LizardMan245/opus), [Eric Brombaugh and Paul Schreiber's reverse-engineering work](https://github.com/emeb/MIDIVerb_RE), and [thement's emulator](https://github.com/thement/midiverb_emulator). This independent project is not affiliated with or endorsed by Alesis.
 
-The native build and desktop tests passed; physical OP-1 first/second-slot behavior and CPU for this version remain unverified. Version 1.0 retains the delivered 0.3.0 implementation.
-
+The native build and desktop tests passed.
 ## Other devices
 
 - [Fluke](Fluke) — device, manual and source.
