@@ -22,6 +22,14 @@ Requires **original OP-1 firmware 246 and Opus core 2.31+**. All three have a on
 
 Credit to [Tom Erbe / SoundHack](https://www.soundhack.com/) for the original algorithms, [LizardMan245 and the Opus contributors](https://github.com/LizardMan245/opus) for the framework, and [SquareWave Studio](https://squarewave-studio.github.io/op1-design-kit/) for design guidance. [Full credits and licences](Delay-Trio/Credits.md).
 
+## Pulse Sync 1.0.0
+
+A background plugin by **ESC_CODE** that synchronizes the original OP-1 to an external pulse clock through its audio input. Supports **24/48/96 PPQ** and **1/4, 1/8, 1/16 or 1/32 note clocks**, converted to the OP-1’s 24 PPQ MIDI clock. Includes adjustable pulse detection, silent clock monitoring, optional AutoStart/Stop and USB/Pulse clock priority.
+
+[**Download Pulse Sync**](https://raw.githubusercontent.com/VolkerJunginger/OP-1/main/Pulse-Sync/pulsesync.opmod) · [**Manual, settings and source**](Pulse-Sync) · [**Complete package**](Pulse-Sync/downloads/Pulse-Sync-1.0.0.zip)
+
+Requires **original OP-1 firmware 246 and Opus 2**. Version 1.0.0 retains the 0.1.5 implementation; automatic transport, simultaneous clock sources and CPU load still await hardware testing. [Opus attribution and licences](Pulse-Sync/NOTICE.md).
+
 ## Other devices
 
 - [Fluke](Fluke) — device, manual and source.
