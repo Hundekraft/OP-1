@@ -1,0 +1,11 @@
+opmod     1
+id        esc.pitchdelay
+name      Pitch Delay
+author    ESC_CODE
+version   1.0.0
+core      2.31
+adds      effect pitchdelay
+uses      white_push noshift nofn modal "pitch / octave edit"
+uses      orange_push noshift nofn modal "mix / loop depth edit"
+uses      white_turn nofn modal "pitch or octave"
+uses      orange_turn nofn modal "mix or loop depth"

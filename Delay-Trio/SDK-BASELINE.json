@@ -1,0 +1,10 @@
+{
+  "repository": "https://github.com/LizardMan245/opus",
+  "commit": "e47b95fce500c470447eae1ca31a638c67b6dea4",
+  "subdirectory": "plugin-kit",
+  "downloaded": "2026-11-09",
+  "release": "v2.0-beta.4",
+  "release_name": "Opus 2.0 beta 4 (build 6)",
+  "core_baseline": "2.33",
+  "local_kit": "work/opus-baseline-2026-11-09/plugin-kit"
+}

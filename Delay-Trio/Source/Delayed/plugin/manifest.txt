@@ -1,0 +1,15 @@
+opmod     1
+id        esc.delay
+name      Delayed
+author    ESC_CODE
+version   1.0.0
+core      2.31
+adds      effect delayed
+uses      blue_turn shift nofn modal "lfo frequency"
+uses      green_turn shift nofn modal "lfo depth"
+uses      white_turn shift nofn modal "lfo shape"
+uses      orange_turn shift nofn modal "lfo phase"
+uses      white_push noshift nofn modal "filter / resonance edit"
+uses      white_turn noshift nofn modal "filter or resonance"
+uses      orange_push noshift nofn modal "freeze"
+setting   smooth off,on off "smooth lfo"

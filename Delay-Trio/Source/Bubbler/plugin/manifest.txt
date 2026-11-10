@@ -1,0 +1,15 @@
+opmod     1
+id        esc.bubbler
+name      Bubbler
+author    ESC_CODE
+version   1.5.0
+core      2.31
+adds      effect bubbler
+uses      blue_turn shift nofn modal "time var / pitch"
+uses      green_turn shift nofn modal "start var / pitch var"
+uses      white_turn shift nofn modal "size / filter or reso"
+uses      orange_turn shift nofn modal "size var / reverse"
+uses      left shift nofn modal "previous settings page"
+uses      right shift nofn modal "next settings page"
+uses      white_push shift nofn modal "filter or resonance edit"
+place     jump 0x01a85750 bubbler_note_on expect 00e80400 as grain_note
