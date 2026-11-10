@@ -47,8 +47,7 @@ control playback. Changing AutoStart to off leaves playback under manual control
 Version 0.1.4 was confirmed on the owner's OP-1. Version 1.0.0 retains the 0.1.5 implementation and passed desktop
 tests for all previous conversions and the new threshold mapping, transport
 ordering, source arbitration, fallback, counter rollover and queue failure
-handling. Real OP-1 transport behavior, simultaneous clock sources and CPU
-load still need hardware testing.
+handling.
 
 The stock MIDI receiver's two realtime sync-mode queries are intercepted
 with checked firmware places. Injected messages carry an origin tag in their
