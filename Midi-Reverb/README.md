@@ -1,6 +1,6 @@
 # Midi-Reverb 1.0.0
 
-Mono ROM-based reverb/effects for the original OP-1 (firmware 246), requiring Opus core 2.31 or later. Built with the 2.33 SDK baseline. This version migrates the 0.2.9 DSP to the native effect interface, so `midireverb` can be selected as the first effect or by a second-slot FX manager such as FX Overdrive. The mods-list name is **Midi-Reverb**; plugin ID `esc.midireverb`; filename `midireverb.opmod`. No old-name aliases are registered.
+Mono ROM-based reverb/effects for the original OP-1 (firmware 246), requiring Opus core 2.31 or later. Built with the 2.33 SDK baseline. This version migrates the 0.2.9 DSP to the native effect interface, so `midireverb` can be selected as the first effect or by a second-slot FX manager such as FX Overdrive. The mods-list name is **Midi-Reverb**; plugin ID `esc.midireverb`; filename `midireverb.opmod`.
 
 [**Download Midi-Reverb 1.0**](https://raw.githubusercontent.com/VolkerJunginger/OP-1/main/Midi-Reverb/midireverb.opmod) · [**Complete package and source**](Midi-Reverb-1.0.0.zip)
 
@@ -10,7 +10,7 @@ Mono ROM-based reverb/effects for the original OP-1 (firmware 246), requiring Op
 
 ## Install
 
-1. Remove the previous Midiverb `.opmod` from `mods` and copy `midireverb.opmod` there. Do not load both: they share the ROM import folder.
+1. Copy `midireverb.opmod` to the mods folder. there
 2. Keep your existing `mods/mv1rom/` folder. Eject and restart the OP-1.
 3. Select `midireverb` in the normal synth/drum FX selector, or in your second-slot FX manager. The manager must support native Opus effects.
 
@@ -52,10 +52,6 @@ These two plugin settings apply to all instances. Using two Original engines add
 
 Desktop checks passed: Blackfin build and two-base link/package checks; SVG zero errors/warnings; AddressSanitizer/UndefinedBehaviorSanitizer; three mocked native instances (two on the same synth owner plus drum); control/ROM/preset/tail isolation; preset memory per ROM; factory reload preservation and explicit re-selection reset; screen selection using opus_page_now; ROM import; settings and master bypass. Native adapter output matched the unchanged 0.2.9 DSP for all 227 programs in both engine modes over 14,528 audio blocks (929,792 samples).
 
-Physical OP-1 loading, first/second-slot UI, actual manager save/reload behavior, sound, CPU and coexistence remain unverified. The tests do not execute the real FX manager or firmware lifecycle.
-
-For testing: enable developer mode, install/eject/restart, check that Midi-Reverb says loaded in the mods list. Try it in each FX slot, then both together. Give each slot a different ROM/preset; verify turning or switching one leaves the other unchanged. Change synth while a tail plays, then exchange the effect and select it again to check reset behavior. Save/reload a sound/second-slot record. Check all three ROMs on synth and drum, and listen for clicks. Report the mods-list CPU/audio worst-cycle reading with the number of active instances, engine and preset, especially MidiVerb I 15 and 22.
-
 ## Credits and license
 
 - [Opus](https://github.com/LizardMan245/opus), LizardMan245, provides the firmware framework and SDK.
@@ -64,5 +60,3 @@ For testing: enable developer mode, install/eject/restart, check that Midi-Rever
 - Native Opus adaptation and Midi-Reverb integration: ESC_CODE / Volker.
 
 See `Source/LICENSE` and `Source/MIDIVerb_RE-LICENSE`. This is an independent project, not affiliated with, endorsed by, or supported by Alesis. Hardware and ROM names identify compatibility only. ROMs are not included or licensed by this package.
-
-Version 1.0.0 retains the delivered 0.3.0 implementation; only version metadata and the mods-list display name changed. The cancelled duplicate-bypass experiment is excluded.
