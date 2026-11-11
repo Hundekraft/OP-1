@@ -8,7 +8,7 @@
 #define PULSE_HOST_TEST
 #include "../pulsesync.c"
 volatile short test_input[64];
-volatile unsigned test_ring[1024], test_wr, test_rd, test_mode, test_input_mode, test_rx_phase, test_follow, test_fallback, test_com;
+volatile unsigned test_ring[1024], test_wr, test_rd, test_mode, test_input_mode, test_rx_phase, test_follow, test_fallback, test_com, test_stamp[2];
 static int enabled = 1, threshold = 5, polarity, mute_input=1, input_rate, autostart, priority;
 static void (*block_cb)(void);
 static void (*mute_cb)(int,short *);
@@ -333,14 +333,25 @@ int main(void) {
         reset();threshold=(int)th;polarity=1;settings(0,0);test_input[2]=-32768;render();
         assert(detected==1 && input_peak==32768);
     }
-    /* Mute policy: active sync only, no edits to capture/audio, either instrument. */
+    /* Mute policy: only while pulses are the selected clock, no edits to capture/audio, either instrument. */
     reset();short sound[64];for(unsigned i=0;i<64;i++)sound[i]=(short)(i*31-300);
+    mute_cb(1,sound);assert(skips==0); /* nothing plugged in: line in is left alone */
+    ++detected;block_cb();assert(selected_source==SOURCE_PULSE);
     test_input[3]=12345;mute_cb(1,sound);assert(skips==1 && test_input[3]==12345);
     for(unsigned i=0;i<64;i++)assert(sound[i]==(short)(i*31-300));
     mute_input=0;settings(0,0);mute_cb(0,sound);assert(skips==1);
     mute_input=1;enabled=0;settings(0,0);mute_cb(0,sound);assert(skips==1);
     enabled=1;settings(0,0);test_mode=0;mute_cb(0,sound);assert(skips==1);
     test_mode=4;mute_cb(0,sound);assert(skips==2);
+    /* Pulses stop: the mute ends with the clock. */
+    test_cycles+=FIRST_PULSE_TIMEOUT+1u;block_cb();assert(selected_source==SOURCE_NONE);
+    mute_cb(0,sound);assert(skips==2);
+    /* A USB clock that wins the arbitration is not muted either. */
+    reset();test_ring[0]=0xf80fu;test_wr=1;detected=1;block_cb();assert(selected_source==SOURCE_USB);
+    mute_cb(0,sound);assert(skips==0);
+    /* Posted clocks clear the stale USB event stamp the stock F8 handler would time them with. */
+    reset();test_stamp[0]=1234;test_stamp[1]=5678;detected=1;block_cb();
+    assert(sent==1 && test_stamp[0]==0 && test_stamp[1]==0);
     /* Toggling mute must not reset an already-high detector and invent a tick. */
     reset();test_input[1]=10000;render();unsigned before=detected;
     mute_input=0;settings(0,0);render();assert(detected==before);

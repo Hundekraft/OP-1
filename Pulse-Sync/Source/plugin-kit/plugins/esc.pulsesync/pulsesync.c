@@ -4,7 +4,7 @@
 #include "pulse_core.h"
 #ifdef PULSE_HOST_TEST
 extern volatile short test_input[64];
-extern volatile unsigned test_ring[1024], test_wr, test_rd, test_mode, test_input_mode, test_rx_phase, test_follow, test_fallback, test_com;
+extern volatile unsigned test_ring[1024], test_wr, test_rd, test_mode, test_input_mode, test_rx_phase, test_follow, test_fallback, test_com, test_stamp[2];
 #define INPUT test_input
 #define RING test_ring
 #define WR test_wr
@@ -15,6 +15,8 @@ extern volatile unsigned test_ring[1024], test_wr, test_rd, test_mode, test_inpu
 #define FOLLOW test_follow
 #define FALLBACK test_fallback
 #define COM_MODE test_com
+#define STAMP_A test_stamp[0]
+#define STAMP_B test_stamp[1]
 static unsigned test_cycles;
 static unsigned cycles(void) { return test_cycles; }
 static unsigned irq_off(void) { return 0; }
@@ -31,6 +33,8 @@ static void publish(void) { }
 #define FOLLOW (*(volatile const unsigned char *)0x018c1898u)
 #define FALLBACK (*(volatile const unsigned char *)0x018c1874u)
 #define COM_MODE (*(volatile const unsigned char *)0x018b6074u)
+#define STAMP_A (*(volatile unsigned *)0x018b6068u)
+#define STAMP_B (*(volatile unsigned *)0x018b606cu)
 static unsigned cycles(void) { unsigned n; __asm__ volatile("%0 = CYCLES;" : "=d"(n)); return n; }
 static unsigned irq_off(void) { unsigned n; __asm__ volatile("cli %0;" : "=d"(n) : : "memory"); return n; }
 static void irq_restore(unsigned n) { __asm__ volatile("sti %0;" : : "d"(n) : "memory"); }
@@ -123,6 +127,12 @@ static int queue_message(unsigned status)
     unsigned wr = WR, rd = RD;
     int ok = pulse_ring_room(wr, rd);
     if (ok) {
+        /* The stock F8 handler times a clock with the stamp of the last USB event
+         * and uses the current time only when both words are 0. An injected
+         * clock has no USB event, so after any USB activity it would be timed
+         * with a stale stamp and the tempo would never lock. */
+        STAMP_A = 0;
+        STAMP_B = 0;
         RING[wr & 1023u] = MIDI_TAG | (status << 8) | 0x0fu;
         publish();
         WR = wr + 1u;
@@ -239,12 +249,13 @@ int pulse_input(int a, int b, int c)
     return result;
 }
 /* Audio callback: suppress the stock dry monitor, leaving capture and sound buffers intact.
- * The core consumes this request at its dry-input routing hook. */
+ * The core consumes this request at its dry-input routing hook. Only while pulses
+ * are the selected clock: with nothing plugged in the input is left alone. */
 static void mute_clock_input(int instrument, short *buf)
 {
     unsigned cfg = config;
     (void)instrument; (void)buf;
-    if ((cfg & 0x50000u) == 0x50000u && (MODE == 2 || MODE == 4))
+    if ((cfg & 0x50000u) == 0x50000u && (MODE == 2 || MODE == 4) && selected_source == SOURCE_PULSE)
         opus_skip_dry_input();
 }
 /* Sequencer thread, before the normal stock MIDI drain. */
